@@ -1,0 +1,5 @@
+MUI [lib_mpi_multidomain]: Rank 1 "domain1" registered interface interface_1 as a1c24ebc
+MUI [comm_mpi.h]: rank 1	identifier mpi://domain1/interface_1	domain size 2	peer number 2	
+[office-pc] Grid points for rank 1: [0,0,50] - [100,100,100] MUI: 1 send, 1 receive
+[office-pc] Data to send for rank 1: 3 MB (500000 points)
+[office-pc] Wall-time for rank 1: 7.07921s

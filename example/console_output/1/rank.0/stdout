@@ -1,0 +1,22 @@
+[office-pc] MPI initialised, there are 2 ranks
+[office-pc] Allocating send/recv buffers, filling send with random data.
+MUI [lib_mpi_multidomain]: Rank 0 "domain1" registered interface interface_1 as a1c24ebc
+MUI Info [lib_mpi_multidomain]: 1 distinct interface(s) found
+MUI [lib_mpi_multidomain]: Setting up interface interface_1 [a1c24ebc] (rank ids are local to each interface)
+MUI [comm_mpi.h]: rank 0	identifier mpi://domain1/interface_1	domain size 2	peer number 2	
+[office-pc] Grid points for rank 0: [0,0,0] - [100,100,50] MUI: 1 send, 1 receive
+[office-pc] Populating grid array... Done
+[office-pc] Total grid data size: 38 MB
+[office-pc] Total cell count: 1000000
+[office-pc] Domain cells: [100,100,100]
+[office-pc] Domain size: [0,0,0] - [100,100,100]
+[office-pc] Cells per rank: 500000
+[office-pc] Iterations: 5
+[office-pc] Send value: 10
+[office-pc] Static points: Disabled
+[office-pc] Smart Send: Disabled
+[office-pc] Spatial interpolation: Enabled
+[office-pc] Work time (ms): 100
+[office-pc] Data to send for rank 0: 3 MB (500000 points)
+Iteration [>                                       ] 1Iteration [==========>                             ] 2Iteration [====================>                   ] 3Iteration [==============================>         ] 4Iteration [========================================] 5
+[office-pc] Wall-time for rank 0: 7.07745s

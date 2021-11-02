@@ -1,0 +1,8 @@
+bin/
+MUI/
+build/
+example_run/*.csv
+example_run/console_output/
+
+!MUI/README
+!build/README
