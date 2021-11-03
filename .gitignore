@@ -1,3 +1,6 @@
+.project
+.cproject
+.settings/
 build/
 example/*.csv
 example/console_output/
