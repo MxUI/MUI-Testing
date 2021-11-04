@@ -1,2 +1,0 @@
-MUI [lib_mpi_multidomain]: Rank 3 "domain2" registered interface interface_1 as a1c24ebc
-MUI [comm_mpi.h]: rank 3	identifier mpi://domain2/interface_1	domain size 2	peer number 2	

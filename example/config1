@@ -23,7 +23,7 @@ CONSOLE_OUTPUT YES
 USE_SMART_SEND YES
 
 # Create CSV files of generated grid, including partitions
-GENERATE_OUTPUT_CSV NO
+GENERATE_OUTPUT_CSV YES
 
 ############################
 # MUI Interface Definition #

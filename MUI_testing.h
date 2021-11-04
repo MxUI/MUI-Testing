@@ -150,40 +150,15 @@ struct pointData {
   REAL value;
 };
 
-//bool usingMPI; //-Is run MPI parallelised
-//bool enableOutput; //-Enable or disable application console output
-//bool staticPoints; //-Enable or disable the use of static grid points (only send point values for first frame)
 int mpiWorldSize = 1; //-Number of MPI processes
 int mpiRank; //-Rank of this MPI process
 int mpiCartesianRank[3] = {0, 0, 0}; //-Coordinates of this MPI process in Cartesian topology
-//const int MB = 1024*1024;
 MPI_Datatype MPI_MB;
 char *sendBuf, *recvBuf;
-//int cellsx, cellsy, cellsz; //-Dimensions of the problem grid
-//double domx_min, domy_min, domz_min; //-Minimum dimensions of the computational domain
-//double domx_max, domy_max, domz_max; //-Maximum dimensions of the computational domain
-//int iterations; //-Number of iterations to perform
-//std::string muifile; //-Filename of the file containing MUI interfaces
-//double sendvalue; //-The value to be sent via MUI
 double tStart, tEnd; //-MPI wall-time storage
-//bool usingSmartSend; //-Flag to determine whether to use smart sending capability of MUI or not
 std::string procName; //-String to hold processor name as returned by MPI
-//bool usingDirectReceive; //-Flag to determine whether values are retrieved directly through the interface or using interpolation
-//int sleepTime; //-The amount of time each iteration will wait to simulate work that would be done by a real solver
-//int amountToSend; //-The amount of data that each rank will send to each of its neighbor
-//bool isPeriodic; //-Are the communications done on a periodic mesh ?
-//bool generateCSV; //-Should CSV files be generated ?
-
-//Grid Data
-//int totalCells; //- Total number of cells in grid
-//double gridsizex, gridsizey, gridsizez; //-Size of a grid cell in each direction
-//double gridcentrex, gridcentrey, gridcentrez; //-Centre of a grid cell
-//size_t itot, jtot, ktot; //-Total number of cells in each direction per rank
 pointData*** array3d_send; //-3D contiguous array of points to send via MUI
 std::vector<std::pair<size_t, pointData* > > array3d_rcv; //-1D contiguous arrays of points to receive via MUI inerfaces
-//double domXMin, domXMax; //-The min and max of this ranks domain in the x direction
-//double domYMin, domYMax; //-The min and max of this ranks domain in the y direction
-//double domZMin, domZMax; //-The min and max of this ranks domain in the z direction
 POINT sendMin, sendMax; //-The min and max of all MUI sending interfaces for this rank
 POINT rcvMin, rcvMax; //-The min and max of all MUI receiving interfaces for this rank
 int sendInterfaces, rcvInterfaces; //-Count of the number of send and receive MUI interfaces on this rank

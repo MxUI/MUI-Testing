@@ -372,7 +372,7 @@ bool run(parameters& params) {
     //Sleep process for pre-defined period of time to simulate work being done by host code
     std::this_thread::sleep_for(std::chrono::milliseconds(params.waitIt));
 
-    if( params.enableMPI ) {
+    if( params.enableMPI && params.dataToSend > 0 ) {
       int err = MPI_Neighbor_alltoall(sendBuf, params.dataToSend, MPI_MB, recvBuf, params.dataToSend, MPI_MB, comm_cart);
       if(err != MPI_SUCCESS) {
         std::cout << "Error when calling MPI_Neighbor_alltoall" << std::endl;
@@ -436,20 +436,20 @@ bool initMPI(int argc, char** argv, parameters& params) {
     std::cout << "Error when commiting MPI_MB" << std::endl;
   }
 
-  if(params.consoleOut) {
-    if(!params.enableMPI || (params.enableMPI && mpiRank == 0)){
-      std::cout << "[" << procName << "] Allocating send/recv buffers, filling send with random data." << std::endl;
-    }
-  }
-
   // Fill send and receive buffers with random data
-  int dataSize = megabyte * params.dataToSend * 6;
-  sendBuf = new char[dataSize];
-  recvBuf = new char[dataSize];
-  std::srand(std::time(nullptr));
-	int r = std::rand();
-  for(size_t i = 0; i< static_cast<size_t>(dataSize); i++){
-    sendBuf[i] = r;
+  if( params.dataToSend > 0 && params.enableMPI ) {
+    if( params.consoleOut && mpiRank == 0 ) {
+       std::cout << "[" << procName << "] Allocating MPI buffers, filling send with random data." << std::endl;
+    }
+
+    int dataSize = megabyte * params.dataToSend * 6;
+    sendBuf = new char[dataSize];
+    recvBuf = new char[dataSize];
+    std::srand(std::time(nullptr));
+    int r = std::rand();
+    for(size_t i = 0; i< static_cast<size_t>(dataSize); i++){
+      sendBuf[i] = r;
+    }
   }
 
   return true;
@@ -596,21 +596,25 @@ bool createGridData(parameters& params) {
 
   if(params.generateCSV) {
     std::ofstream out;
-    std::string filename = "partition_" + std::to_string(mpiRank) + ".csv";
+    std::string filename = params.domainName + "_partition_" + std::to_string(mpiRank) + ".csv";
     out.open(filename, std::ios::out | std::ios::trunc);
     if(!out.is_open()) {
       std::cerr << "Could not open: " << filename << std::endl;
     }
-    for(size_t i=0; i < params.itot; i++) {
-      for(size_t j=0; j < params.jtot; j++) {
-        for(size_t k=0; k < params.ktot; k++) {
-          out << array3d_send[i][j][k].point[0] << ",";
-          out << array3d_send[i][j][k].point[1] << ",";
-          out << array3d_send[i][j][k].point[2] << "\n";
+    else {
+      out << "x" << "," << "y" << "," << "z" << std::endl;
+      for(size_t i=0; i < params.itot; i++) {
+        for(size_t j=0; j < params.jtot; j++) {
+          for(size_t k=0; k < params.ktot; k++) {
+            out << array3d_send[i][j][k].point[0] << ",";
+            out << array3d_send[i][j][k].point[1] << ",";
+            out << array3d_send[i][j][k].point[2] << "\n";
+          }
         }
       }
+
+      out.close();
     }
-    out.close();
 	}
   if(params.consoleOut) {
     if(!params.enableMPI || (params.enableMPI && mpiRank == 0)){ //Only perform on master rank if not in serial mode
@@ -664,6 +668,7 @@ void printData(parameters& params) {
     std::cout << "[" << procName << "] Static points: " << (params.staticPoints? "Enabled": "Disabled") << std::endl;
     std::cout << "[" << procName << "] Smart Send: " << (params.smartSend? "Enabled": "Disabled") << std::endl;
     std::cout << "[" << procName << "] Spatial interpolation: " << (params.useInterp? "Disabled": "Enabled") << std::endl;
+    std::cout << "[" << procName << "] MPI data overhead: " << ((params.dataToSend > 0 && params.enableMPI)? "Enabled": "Disabled") << std::endl;
     std::cout << "[" << procName << "] Work time (ms): " << params.waitIt << std::endl;
   }
 
@@ -678,12 +683,12 @@ void printData(parameters& params) {
     }
   }
 
-  double sendDataSize = static_cast<double>((enabledPts * sizeof(double)) / megabyte);
+  double sendDataSize = static_cast<double>(((sizeof(POINT) * enabledPts) + sizeof(REAL)) / megabyte);
 
   if(params.enableMPI)
-    std::cout << "[" << procName << "] " "Data to send for rank " << mpiRank << ": " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
+    std::cout << "[" << procName << "] " "Data to send via MUI for rank " << mpiRank << ": " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
   else
-    std::cout << "[" << procName << "] " "Data to send: " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
+    std::cout << "[" << procName << "] " "Data to send via MUI: " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
 }
 
 //****************************************************
