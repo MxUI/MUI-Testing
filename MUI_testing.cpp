@@ -433,7 +433,7 @@ bool initMPI(int argc, char** argv, parameters& params) {
 
   err = MPI_Type_commit(&MPI_MB);
   if(err != MPI_SUCCESS) {
-    std::cout << "Error when commiting MPI_MB" << std::endl;
+    std::cout << "Error when committing MPI_MB" << std::endl;
   }
 
   // Fill send and receive buffers with random data
@@ -667,7 +667,7 @@ void printData(parameters& params) {
     std::cout << "[" << procName << "] Send value: " << params.sendValue << std::endl;
     std::cout << "[" << procName << "] Static points: " << (params.staticPoints? "Enabled": "Disabled") << std::endl;
     std::cout << "[" << procName << "] Smart Send: " << (params.smartSend? "Enabled": "Disabled") << std::endl;
-    std::cout << "[" << procName << "] Spatial interpolation: " << (params.useInterp? "Disabled": "Enabled") << std::endl;
+    std::cout << "[" << procName << "] Spatial interpolation: " << (params.useInterp? "Enabled": "Disabled") << std::endl;
     std::cout << "[" << procName << "] MPI data overhead: " << ((params.dataToSend > 0 && params.enableMPI)? "Enabled": "Disabled") << std::endl;
     std::cout << "[" << procName << "] Work time (ms): " << params.waitIt << std::endl;
   }
