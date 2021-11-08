@@ -50,14 +50,14 @@ USE_INTERPOLATION NO
 
 # The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
 # in ms to simulate typical processing time for application type (e.g. CFD)
-WAIT_PER_ITERATION 100
+WAIT_PER_ITERATION 0
 
 # The amount of data to send between ranks via MPI in megabytes to simulate typical MPI overhead
 # for application type (e.g. CFD), only applies if ENABLE_LOCAL_MPI=YES
-DATA_TO_SEND_MPI 1
+DATA_TO_SEND_MPI 0
 
 # Assume a simulation type involving periodic boundaries (i.e. all MPI ranks communicate
 # with their neighbours and those at the start/end of the domain communicate back with the start/end,
 # only applies if ENABLE_LOCAL_MPI=YES
-USE_PERIODIC_PATTERN NO
+USE_PERIODIC_PATTERN YES
 

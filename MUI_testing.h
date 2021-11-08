@@ -62,6 +62,7 @@
 #include <chrono>
 #include <thread>
 #include <cstdlib>
+#include <iomanip>
 
 // MUI specific headers
 #include <mui.h>
@@ -171,7 +172,7 @@ bool run(parameters&);
 bool initMPI(int, char**, parameters&);
 void calculateGridValues(parameters&);
 bool createGridData(parameters&);
-void createRcvGridData(size_t, std::vector<pointData>&);
+void createRcvGridData(size_t, std::vector<POINT>&);
 void printData(parameters&);
 bool createMUIInterfaces(std::string&, parameters&);
 void decompose(int, int, int, int*, int*, int*);
@@ -179,6 +180,7 @@ void finalise(bool);
 bool readConfig(std::string&, parameters&);
 bool readInterfaces(std::string& fileName, bool usingMPI);
 bool processPoint(const std::string&, POINT&);
-template <typename T> bool intersectBox(mui::geometry::box<T>&, mui::geometry::box<T>&);
-template <class T> T*** create3DArr(int, int, int);
-template <class T> void delete3DArr(T***);
+template <typename T> inline bool intersectBox(mui::geometry::box<T>&, mui::geometry::box<T>&);
+template <typename T> inline bool almostEqual(T x, T y);
+template <class T> inline T*** create3DArr(int, int, int);
+template <class T> inline void delete3DArr(T***);

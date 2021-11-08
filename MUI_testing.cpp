@@ -130,7 +130,6 @@ bool run(parameters& params) {
   int pos=0;
 
   std::vector<REAL> rcvValues(muiInterfaces.size(), -1);
-  POINT sendPoint(0, 0, 0);
   REAL gaussParam = std::max(std::max(params.gridSize[0], params.gridSize[1]), params.gridSize[2]);
   mui::sampler_gauss<mui::tf_config> s1( gaussParam, gaussParam / static_cast<REAL>(2) );
   mui::chrono_sampler_exact<mui::tf_config> s2;
@@ -138,9 +137,6 @@ bool run(parameters& params) {
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
     //Announce send and receive region for each interface
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      double smallValue = 1e-8;
-      int endTime = static_cast<TIME>(params.itCount);
-
       // Create box structure of the overall send region for this interface
       mui::geometry::box<mui::tf_config> sendRegion({muiInterfaces[interface].domMinSend[0], muiInterfaces[interface].domMinSend[1], muiInterfaces[interface].domMinSend[2]},
                                                     {muiInterfaces[interface].domMaxSend[0], muiInterfaces[interface].domMaxSend[1], muiInterfaces[interface].domMaxSend[2]});
@@ -149,23 +145,14 @@ bool run(parameters& params) {
       mui::geometry::box<mui::tf_config> rcvRegion({muiInterfaces[interface].domMinRcv[0], muiInterfaces[interface].domMinRcv[1], muiInterfaces[interface].domMinRcv[2]},
                                                    {muiInterfaces[interface].domMaxRcv[0], muiInterfaces[interface].domMaxRcv[1], muiInterfaces[interface].domMaxRcv[2]});
 
-
-      if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2) //If the interface is set to send or send & receive
-        muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(endTime), sendRegion);
-
-      if(muiInterfaces[interface].sendRecv == 1 || muiInterfaces[interface].sendRecv == 2) //If the interface is set to receive or send & receive
-        muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(endTime), rcvRegion);
+      muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRegion);
+      muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), rcvRegion);
 
       // Assign value to send to interface
       muiInterfaces[interface].interface->push("rcv_value", params.sendValue);
 
       // Commit values to interface at t=0 so barrier can release
       muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
-    }
-
-    // Barrier to ensure other side of interface has pushed timeframe so Smart Send enabled across ranks and receive value sent
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
     }
   }
   else { //Not using smart_send so only set up receive value
@@ -180,21 +167,22 @@ bool run(parameters& params) {
       //Commit values to interface at t=0 so barrier can release
       muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
     }
+  }
 
-    //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
-    }
+  //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
+  for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+    muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
   }
 
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
     //Receive the value to be received through the interface
     rcvValues[interface] = muiInterfaces[interface].interface->fetch<REAL>("rcv_value");
+    // Forget received frame now data stored
+    muiInterfaces[interface].interface->forget(static_cast<TIME>(0));
   }
 
   std::vector<POINT> rcvPoints;
   std::vector<REAL> rcvDirectValues;
-  std::vector<pointData> lclRcvPoints;
   std::vector<bool> rcvDirectValuesEnabled(muiInterfaces.size(), false);
 
   //Iterate for as many times and send/receive through MUI interface(s)
@@ -223,20 +211,13 @@ bool run(parameters& params) {
 
     //Send and receive value for receive from each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
-      if( iter > 0 ) //Forget the previous buffer
-        muiInterfaces[interface].interface->forget(static_cast<TIME>(iter-1));
-
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push if this interface is for sending or for send & receive
         for( size_t i=0; i<params.itot; ++i ) {
           for( size_t j=0; j<params.jtot; ++j ) {
             for( size_t k=0; k<params.ktot; ++k ) {
               if( array3d_send[i][j][k].enabled ) { //Push the value if it is enabled for this rank
-                sendPoint[0] = array3d_send[i][j][k].point[0];
-                sendPoint[1] = array3d_send[i][j][k].point[1];
-                sendPoint[2] = array3d_send[i][j][k].point[2];
-
                 //Push value to interface
-                muiInterfaces[interface].interface->push("data", sendPoint, array3d_send[i][j][k].value);
+                muiInterfaces[interface].interface->push("data", array3d_send[i][j][k].point, array3d_send[i][j][k].value);
               }
             }
           }
@@ -272,40 +253,30 @@ bool run(parameters& params) {
                   for( size_t j=0; j<rcvDirectValues.size(); j++) {
                     if( rcvDirectValues[j] != rcvValues[interface]) {
                       if( !params.enableMPI )
-                        std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << std::endl;
+                        std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << std::endl;
                       else
-                        std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
+                        std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
                     }
                   }
                 }
               }
             }
             else { //Using spatial interpolation to receive values
-              lclRcvPoints.resize(rcvPoints.size());
-              for( size_t i=0; i<rcvPoints.size(); ++i ) {
-                lclRcvPoints[i].point[0] = rcvPoints[i][0];
-                lclRcvPoints[i].point[1] = rcvPoints[i][1];
-                lclRcvPoints[i].point[2] = rcvPoints[i][2];
-              }
-
-              createRcvGridData(interface, lclRcvPoints); //Create the receive grid array
+              //Create the receive grid array based on the points received through MUI interface
+              createRcvGridData(interface, rcvPoints);
 
               //Iterate for as many points as we are to receive through the interface
               for( size_t i=0; i<array3d_rcv[interface].first; ++i ) {
-                sendPoint[0] = array3d_rcv[interface].second[i].point[0];
-                sendPoint[1] = array3d_rcv[interface].second[i].point[1];
-                sendPoint[2] = array3d_rcv[interface].second[i].point[2];
-
                 //Receive value from other side
-                array3d_rcv[interface].second[i].value = muiInterfaces[interface].interface->fetch("data", sendPoint, currTime, s1, s2);
+                array3d_rcv[interface].second[i].value = muiInterfaces[interface].interface->fetch("data", array3d_rcv[interface].second[i].point, currTime, s1, s2);
 
                 if( params.enableMPI ) {
-                  //Check value received make sense
-                  if( array3d_rcv[interface].second[i].value != rcvValues[interface]) {
+                  //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same
+                  if( !almostEqual<REAL>(array3d_rcv[interface].second[i].value, rcvValues[interface]) ) {
                     if( !params.enableMPI )
-                      std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << std::endl;
+                      std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << std::endl;
                     else
-                      std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
+                      std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
                   }
                 }
               }
@@ -333,10 +304,10 @@ bool run(parameters& params) {
                   for( size_t j=0; j<rcvDirectValues.size(); j++ ) {
                     if( rcvDirectValues[j] != rcvValues[interface] ) {
                       if( !params.enableMPI ) {
-                        std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << std::endl;
+                        std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << std::endl;
                       }
                       else {
-                        std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
+                        std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
                       }
                     }
                   }
@@ -347,28 +318,25 @@ bool run(parameters& params) {
           else { //Using spatial interpolation to receive values
             //Iterate for as many points as we are to receive through the interface
             for( size_t i=0; i<array3d_rcv[interface].first; ++i ) {
-              sendPoint[0] = array3d_rcv[interface].second[i].point[0];
-              sendPoint[1] = array3d_rcv[interface].second[i].point[1];
-              sendPoint[2] = array3d_rcv[interface].second[i].point[2];
-
               //Receive value from other side
-              array3d_rcv[interface].second[i].value = muiInterfaces[interface].interface->fetch("data", sendPoint, currTime, s1, s2);
+              array3d_rcv[interface].second[i].value = muiInterfaces[interface].interface->fetch("data", array3d_rcv[interface].second[i].point, currTime, s1, s2);
 
-              if( params.consoleOut ) {
-                //Check value received make sense
-                if( array3d_rcv[interface].second[i].value != rcvValues[interface]) {
-                  if( !params.enableMPI ) {
-                    std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << std::endl;
-                  }
-                  else {
-                    std::cout << outName << " Error: Received value not as expected for interface " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
-                  }
+              //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same
+              if( !almostEqual<REAL>(array3d_rcv[interface].second[i].value, rcvValues[interface]) ) {
+                if( !params.enableMPI ) {
+                  std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << std::endl;
+                }
+                else {
+                  std::cout << outName << " Error: Received value not as expected for " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
                 }
               }
             }
           }
         }
       }
+
+      // Forget fetched data frame from MUI interface to ensure memory free'd
+      muiInterfaces[interface].interface->forget(static_cast<TIME>(currTime));
     }
 
     //Sleep process for pre-defined period of time to simulate work being done by host code
@@ -577,20 +545,25 @@ bool createGridData(parameters& params) {
     for(size_t j=0; j < params.jtot; j++) {
       for(size_t k=0; k < params.ktot; k++) {
         //Update send array
-        array3d_send[i][j][k].point[0] = params.rankDomainMin[0] + static_cast<double>(i * params.gridSize[0]) + params.gridCentre[0];
-        array3d_send[i][j][k].point[1] = params.rankDomainMin[1] + static_cast<double>(j * params.gridSize[1]) + params.gridCentre[1];
-        array3d_send[i][j][k].point[2] = params.rankDomainMin[2] + static_cast<double>(k * params.gridSize[2]) + params.gridCentre[2];
+        array3d_send[i][j][k].point[0] = params.rankDomainMin[0] + static_cast<REAL>(i * params.gridSize[0]) + params.gridCentre[0];
+        array3d_send[i][j][k].point[1] = params.rankDomainMin[1] + static_cast<REAL>(j * params.gridSize[1]) + params.gridCentre[1];
+        array3d_send[i][j][k].point[2] = params.rankDomainMin[2] + static_cast<REAL>(k * params.gridSize[2]) + params.gridCentre[2];
         array3d_send[i][j][k].value = params.sendValue;
 
         bool pointEnabled = false;
 
-        // Check if the point is within at least one MUI inteface send region
-        for( size_t i=0; i<muiInterfaces.size(); i++) {
-          if(array3d_send[i][j][k].point[0] > muiInterfaces[i].domMinSend[0] && array3d_send[i][j][k].point[1] > muiInterfaces[i].domMinSend[1] && array3d_send[i][j][k].point[2] > muiInterfaces[i].domMinSend[2] &&
-             array3d_send[i][j][k].point[0] < muiInterfaces[i].domMaxSend[0] && array3d_send[i][j][k].point[1] < muiInterfaces[i].domMaxSend[1] && array3d_send[i][j][k].point[2] < muiInterfaces[i].domMaxSend[2]){
-            pointEnabled = true;
-            break; // Break loop through interfaces as point enabled
+        // Check if the point is within at least one MUI interface send region
+        for( size_t interface=0; i<muiInterfaces.size(); interface++) {
+          // Only enable points if the interface is sending
+          if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) {
+            if(array3d_send[i][j][k].point[0] > muiInterfaces[interface].domMinSend[0] && array3d_send[i][j][k].point[1] > muiInterfaces[interface].domMinSend[1] && array3d_send[i][j][k].point[2] > muiInterfaces[interface].domMinSend[2] &&
+               array3d_send[i][j][k].point[0] < muiInterfaces[interface].domMaxSend[0] && array3d_send[i][j][k].point[1] < muiInterfaces[interface].domMaxSend[1] && array3d_send[i][j][k].point[2] < muiInterfaces[interface].domMaxSend[2]){
+              pointEnabled = true;
+              break; // Break loop through interfaces as point enabled
+            }
           }
+          else // Interface not sending so just break
+            break;
         }
 
         array3d_send[i][j][k].enabled = pointEnabled;
@@ -616,7 +589,6 @@ bool createGridData(parameters& params) {
           }
         }
       }
-
       out.close();
     }
 	}
@@ -627,12 +599,10 @@ bool createGridData(parameters& params) {
 //*****************************************************************
 //* Function to populate data in receive grid array for Double data
 //*****************************************************************
-void createRcvGridData(size_t interface, std::vector<pointData> &points) {
+void createRcvGridData(size_t interface, std::vector<POINT> &points) {
   //Check if data already exists, if so delete first
-  if(array3d_rcv[interface].second != NULL) { //Data is not null
-    delete array3d_rcv[interface].second;
-    array3d_rcv[interface].first = 0;
-  }
+  if(array3d_rcv[interface].second != NULL) //Data is not null
+    delete[] array3d_rcv[interface].second;
 
   //Create array
   array3d_rcv[interface].first = points.size();
@@ -640,7 +610,7 @@ void createRcvGridData(size_t interface, std::vector<pointData> &points) {
 
   //Populate receive array
   for (size_t i=0; i<array3d_rcv[interface].first; i++) {
-    array3d_rcv[interface].second[i] = points[i];
+    array3d_rcv[interface].second[i].point = points[i];
     array3d_rcv[interface].second[i].value = -DBL_MIN;
   }
 }
@@ -679,8 +649,8 @@ void printData(parameters& params) {
   double sendDataSize = static_cast<double>(((sizeof(POINT) * enabledPts) + sizeof(REAL)) / megabyte);
 
   if(params.enableMPI) {
-    std::cout << outName << " Data to send via MUI for rank " << mpiRank << ": " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
     MPI_Barrier(world);
+    std::cout << outName << " Data to send via MUI for rank " << mpiRank << ": " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
   }
   else
     std::cout << outName << " Data to send via MUI: " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
@@ -1191,9 +1161,27 @@ bool processPoint(const std::string& item, POINT& value) {
 }
 
 //****************************************************
+//* Function to peform AABB intersection test
+//****************************************************
+template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
+  return (a.get_min()[0] <= b.get_max()[0] && a.get_max()[0] >= b.get_min()[0]) &&
+         (a.get_min()[1] <= b.get_max()[1] && a.get_max()[1] >= b.get_min()[1]) &&
+         (a.get_min()[2] <= b.get_max()[2] && a.get_max()[2] >= b.get_min()[2]);
+}
+
+//******************************************************************
+//* Function to check if two floating point values are almost equal
+//******************************************************************
+template <typename T> inline bool almostEqual(T x, T y) {
+  return (x == y) ||
+         (std::fabs(x-y) < std::numeric_limits<T>::epsilon() * std::fabs(x+y)) ||
+         (std::fabs(x-y) < std::numeric_limits<T>::min());
+}
+
+//****************************************************
 //* Function to create contiguous 3D array
 //****************************************************
-template <class T> T*** create3DArr(int x, int y, int z) {
+template <class T> inline T*** create3DArr(int x, int y, int z) {
   T*** array = new T**[x];
   array[0] = new T*[x*y];
   array[0][0] = new T[x*y*z];
@@ -1215,14 +1203,8 @@ template <class T> T*** create3DArr(int x, int y, int z) {
 //****************************************************
 //* Function to delete contiguous 3D array
 //****************************************************
-template <class T> void delete3DArr(T*** array) {
+template <class T> inline void delete3DArr(T*** array) {
   delete[] array[0][0];
   delete[] array[0];
   delete[] array;
-}
-
-template <typename T> bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
-  return (a.get_min()[0] <= b.get_max()[0] && a.get_max()[0] >= b.get_min()[0]) &&
-         (a.get_min()[1] <= b.get_max()[1] && a.get_max()[1] >= b.get_min()[1]) &&
-         (a.get_min()[2] <= b.get_max()[2] && a.get_max()[2] >= b.get_min()[2]);
 }
