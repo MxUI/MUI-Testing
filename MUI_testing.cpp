@@ -187,9 +187,6 @@ bool run(parameters& params) {
     }
   }
 
-  //if( params.enableMPI ) //Ensure each rank has reached here if using MPI
-    //MPI_Barrier(world);
-
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
     //Receive the value to be received through the interface
     rcvValues[interface] = muiInterfaces[interface].interface->fetch<REAL>("rcv_value");
