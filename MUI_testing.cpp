@@ -620,8 +620,8 @@ void createRcvGridData(size_t interface, std::vector<POINT> &points) {
 //****************************************************
 void printData(parameters& params) {
   if(!params.enableMPI || (params.enableMPI && mpiRank == 0)) { //Only perform on master rank if not in serial mode
-    double dataSize = static_cast<double>((params.totalCells * sizeof(pointData)) / megabyte);
-    std::cout << outName << " Total grid data size: " << dataSize << " MB" << std::endl;
+    double dataSize = static_cast<double>(params.totalCells * sizeof(pointData)) / static_cast<double>(megabyte);
+    std::cout << outName << " Total grid data size: " << std::setprecision(3) << dataSize << " MB" << std::endl;
     std::cout << outName << " Total cell count: " << params.totalCells << std::endl;
     std::cout << outName << " Total domain cells: [" << static_cast<INT>(params.numGridCells[0]) << "," << static_cast<INT>(params.numGridCells[1]) << "," << static_cast<INT>(params.numGridCells[2]) << "]" << std::endl;
     std::cout << outName << " Total domain size: [" << params.domainMin[0] << "," << params.domainMin[1] << "," << params.domainMin[2] << "] - ["
@@ -646,14 +646,14 @@ void printData(parameters& params) {
     }
   }
 
-  double sendDataSize = static_cast<double>(((sizeof(POINT) * enabledPts) + sizeof(REAL)) / megabyte);
+  double sendDataSize = static_cast<double>(((sizeof(POINT) * enabledPts) + sizeof(REAL)) / static_cast<double>(megabyte));
 
   if(params.enableMPI) {
     MPI_Barrier(world);
-    std::cout << outName << " Data to send via MUI for rank " << mpiRank << ": " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
+    std::cout << outName << " Data to send via MUI for rank " << mpiRank << ": " << std::setprecision(3) << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
   }
   else
-    std::cout << outName << " Data to send via MUI: " << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
+    std::cout << outName << " Data to send via MUI: " << std::setprecision(3) << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
 }
 
 //****************************************************
