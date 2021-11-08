@@ -150,17 +150,16 @@ struct pointData {
   REAL value;
 };
 
-int mpiWorldSize = 1; //-Number of MPI processes
+int mpiWorldSize; //-Number of MPI processes
 int mpiRank; //-Rank of this MPI process
 int mpiCartesianRank[3] = {0, 0, 0}; //-Coordinates of this MPI process in Cartesian topology
 MPI_Datatype MPI_MB;
 char *sendBuf, *recvBuf;
 double tStart, tEnd; //-MPI wall-time storage
 std::string procName; //-String to hold processor name as returned by MPI
+std::string outName; //-String to hold processor name as returned by MPI
 pointData*** array3d_send; //-3D contiguous array of points to send via MUI
-std::vector<std::pair<size_t, pointData* > > array3d_rcv; //-1D contiguous arrays of points to receive via MUI inerfaces
-POINT sendMin, sendMax; //-The min and max of all MUI sending interfaces for this rank
-POINT rcvMin, rcvMax; //-The min and max of all MUI receiving interfaces for this rank
+std::vector<std::pair<size_t, pointData* > > array3d_rcv; //-1D contiguous arrays of points to receive via MUI interfaces
 int sendInterfaces, rcvInterfaces; //-Count of the number of send and receive MUI interfaces on this rank
 
 //MUI Data
@@ -180,5 +179,6 @@ void finalise(bool);
 bool readConfig(std::string&, parameters&);
 bool readInterfaces(std::string& fileName, bool usingMPI);
 bool processPoint(const std::string&, POINT&);
+template <typename T> bool intersectBox(mui::geometry::box<T>&, mui::geometry::box<T>&);
 template <class T> T*** create3DArr(int, int, int);
 template <class T> void delete3DArr(T***);
