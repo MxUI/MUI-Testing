@@ -19,7 +19,8 @@ NUM_GRID_CELLS {100,100,100}
 # Enable console output
 CONSOLE_OUTPUT NO
 
-# Use Smart Send, if enabled then SEND_DOMAIN and RECEIVE_DOMAIN values are used
+# Use Smart Send, if enabled then SEND_DOMAIN and RECEIVE_DOMAIN values 
+# from the interface config file are used
 USE_SMART_SEND YES
 
 # Create CSV files of generated grid, including partitions
@@ -42,10 +43,17 @@ INTERFACE_FILE_PATH config2_mui_interfaces
 # Number of iterations
 ITERATION_COUNT 5
 
-# The value to be sent using MUI interface per grid point
+# The value of type "REAL" to be sent using MUI interface per grid point
+# (see MUI_config.h for meaning of REAL type)
 SEND_VALUE 20
 
-# Use Gaussian interpolation for fetch commands, otherwise values are fetched without interpolation (i.e. using fetch_points/values)
+# Specify the number of values of type "REAL" to send via MUI per grid point, per iteration
+# i.e. for 3D CFD this might be 7 (velocity, acceleration, pressure), corresponding side will
+# automatically adjust to receive the correct amount
+NUM_SEND_VALUES 7
+
+# Use Gaussian interpolation for fetch commands, otherwise values are fetched without 
+# interpolation (i.e. using fetch_points/values)
 USE_INTERPOLATION NO
 
 # The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
@@ -56,7 +64,7 @@ WAIT_PER_ITERATION 0
 # for application type (e.g. CFD), only applies if ENABLE_LOCAL_MPI=YES
 DATA_TO_SEND_MPI 0
 
-# Assume a simulation type involving periodic boundaries (i.e. all MPI ranks communicate
+# Assume a simulation type involving periodic boundaries, i.e. all MPI ranks communicate
 # with their neighbours and those at the start/end of the domain communicate back with the start/end,
 # only applies if ENABLE_LOCAL_MPI=YES
 USE_PERIODIC_PATTERN YES

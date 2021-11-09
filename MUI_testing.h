@@ -107,6 +107,7 @@ struct parameters {
   INT waitIt;
   INT dataToSend;
   bool usePeriodic;
+  INT numMUIValues;
 
   parameters() :
     enableMPI(false),
@@ -130,7 +131,8 @@ struct parameters {
     useInterp(false),
     waitIt(0),
     dataToSend(0),
-    usePeriodic(false)
+    usePeriodic(false),
+    numMUIValues(0)
   {}
 };
 

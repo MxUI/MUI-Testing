@@ -14,4 +14,3 @@ instanceTwo="-n ${MPI_RANKS_2} ${bin} config2"
 
 #mpirun ${instanceOne} : ${instanceTwo}
 mpirun --oversubscribe --output-filename console_output ${instanceOne} : ${instanceTwo}
-
