@@ -108,6 +108,7 @@ struct parameters {
   INT dataToSend;
   bool usePeriodic;
   INT numMUIValues;
+  bool checkValues;
 
   parameters() :
     enableMPI(false),
@@ -132,7 +133,8 @@ struct parameters {
     waitIt(0),
     dataToSend(0),
     usePeriodic(false),
-    numMUIValues(0)
+    numMUIValues(0),
+    checkValues(false)
   {}
 };
 
@@ -145,12 +147,26 @@ struct muiInterface {
   POINT domMaxSend; //The maximum of the domain for the interface to send
   POINT domMinRcv; //The minimum of the domain for the interface to receive
   POINT domMaxRcv; //The maximum of the domain for the interface to receive
+
+  muiInterface() :
+    interfaceName(),
+    interface(nullptr),
+    sendRecv(-1),
+    domMinSend({0,0,0}),
+    domMaxSend({0,0,0}),
+    domMinRcv({0,0,0}),
+    domMaxRcv({0,0,0})
+  {}
 };
 
 struct pointData {
   POINT point;
-  bool enabled;
   REAL value;
+
+  pointData() :
+    point({0,0,0}),
+    value(-DBL_MIN)
+  {}
 };
 
 int mpiWorldSize; //-Number of MPI processes
@@ -162,7 +178,8 @@ double tStart, tEnd; //-MPI wall-time storage
 std::string procName; //-String to hold processor name as returned by MPI
 std::string outName; //-String to hold processor name as returned by MPI
 pointData*** array3d_send; //-3D contiguous array of points to send via MUI
-std::vector<std::pair<size_t, pointData* > > array3d_rcv; //-1D contiguous arrays of points to receive via MUI interfaces
+std::vector<bool***> sendEnabled; //-Vector to hold whether a point is enabled to send for an interface
+std::vector<bool***> rcvEnabled; //-Vector to hold whether a point is enabled to receive for an interface
 int sendInterfaces, rcvInterfaces; //-Count of the number of send and receive MUI interfaces on this rank
 
 //MUI Data
@@ -174,7 +191,6 @@ bool run(parameters&);
 bool initMPI(int, char**, parameters&);
 void calculateGridValues(parameters&);
 bool createGridData(parameters&);
-void createRcvGridData(size_t, std::vector<POINT>&);
 void printData(parameters&);
 bool createMUIInterfaces(std::string&, parameters&);
 void decompose(int, int, int, int*, int*, int*);
@@ -182,6 +198,7 @@ void finalise(bool);
 bool readConfig(std::string&, parameters&);
 bool readInterfaces(std::string& fileName, bool usingMPI);
 bool processPoint(const std::string&, POINT&);
+template <typename T> inline bool intersectPoint(POINT&, mui::geometry::box<T>&);
 template <typename T> inline bool intersectBox(mui::geometry::box<T>&, mui::geometry::box<T>&);
 template <typename T> inline bool almostEqual(T x, T y);
 template <class T> inline T*** create3DArr(int, int, int);

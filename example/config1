@@ -50,11 +50,17 @@ SEND_VALUE 10
 # Specify the number of values of type "REAL" to send via MUI per grid point, per iteration
 # i.e. for 3D CFD this might be 7 (velocity, acceleration, pressure), corresponding side will
 # automatically adjust to receive the correct amount
-NUM_SEND_VALUES 7
+NUM_SEND_VALUES 2
 
 # Use Gaussian interpolation for fetch commands, otherwise values are fetched without
 # interpolation (i.e. using fetch_points/values)
-USE_INTERPOLATION NO
+USE_INTERPOLATION YES
+
+# Enable or disable whether values received through he MUI interface should be sanity checked compared
+# to what is expected through the interface. If using spatial interpolation and a non-colocated set of grids
+# then the check may fail depending on whether the interpolation produces a sane value, in this case the check
+# can be disabled
+CHECK_RECEIVE_VALUE YES
 
 # The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
 # in ms to simulate typical processing time for application type (e.g. CFD)
