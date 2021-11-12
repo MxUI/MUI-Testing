@@ -41,7 +41,7 @@ INTERFACE_FILE_PATH config2_mui_interfaces
 ####################################
 
 # Number of iterations
-ITERATION_COUNT 5
+ITERATION_COUNT 3
 
 # The value of type "REAL" to be sent using MUI interface per grid point
 # (see MUI_config.h for meaning of REAL type)
@@ -50,11 +50,11 @@ SEND_VALUE 20
 # Specify the number of values of type "REAL" to send via MUI per grid point, per iteration
 # i.e. for 3D CFD this might be 7 (velocity, acceleration, pressure), corresponding side will
 # automatically adjust to receive the correct amount
-NUM_SEND_VALUES 2
+NUM_SEND_VALUES 7
 
 # Use Gaussian interpolation for fetch commands, otherwise values are fetched without 
 # interpolation (i.e. using fetch_points/values)
-USE_INTERPOLATION YES
+USE_INTERPOLATION NO
 
 # Enable or disable whether values received through he MUI interface should be sanity checked compared
 # to what is expected through the interface. If using spatial interpolation and a non-colocated set of grids
