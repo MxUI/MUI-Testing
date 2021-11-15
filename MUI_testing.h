@@ -141,7 +141,7 @@ struct parameters {
 //-Struct to hold details of created MUI interface
 struct muiInterface {
   std::string interfaceName; //MUI interface (protocol(def=MPI)://domainName//[interfaceName]
-  mui::uniface<mui::tf_config> *interface; //Pointer to MUI interface
+  mui::uniface<mui::tf_config>* interface; //Pointer to MUI interface
   int sendRecv; //Define whether interface is for sending (0), receiving (1) or both (2)
   POINT domMinSend; //The minimum of the domain for the interface to send
   POINT domMaxSend; //The maximum of the domain for the interface to send

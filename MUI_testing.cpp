@@ -748,18 +748,21 @@ void finalise(bool usingMPI) {
   if( array3d_send != nullptr )
     delete3DArr<pointData>(array3d_send);
 
-  //Cleanup receive array and MUI interfaces
-  for(size_t interface=0; interface<muiInterfaces.size(); interface++) {
-    delete muiInterfaces[interface].interface;
-  }
-
   if( usingMPI ){
     int err = MPI_Type_free(&MPI_MB);
-    if(err != MPI_SUCCESS){
-      std::cerr << outName << " Error: When freeing new MPI_MB datatype" << std::endl;
-    }
-    delete[] sendBuf;
-    delete[] recvBuf;
+     if(err != MPI_SUCCESS)
+       std::cerr << outName << " Error: When freeing new MPI_MB datatype" << std::endl;
+     delete[] sendBuf;
+     delete[] recvBuf;
+  }
+
+  //Cleanup receive array and MUI interfaces
+  for(size_t interface=0; interface<muiInterfaces.size(); interface++) {
+    //Delete 3D send/rcv arrays
+    delete3DArr<bool>(sendEnabled[interface]);
+    delete3DArr<bool>(rcvEnabled[interface]);
+    //Delete MUI interface (finalises MPI)
+    delete muiInterfaces[interface].interface;
   }
 }
 
@@ -1158,18 +1161,30 @@ bool processPoint(const std::string& item, POINT& value) {
 //* Function to check if point inside a box
 //****************************************************
 template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::box<T>& box) {
-  return (point[0] >= box.get_min()[0] && point[0] <= box.get_max()[0]) &&
-         (point[1] >= box.get_min()[1] && point[1] <= box.get_max()[1]) &&
-         (point[2] >= box.get_min()[2] && point[2] <= box.get_max()[2]);
+  bool gtltCheck = (point[0] > box.get_min()[0] && point[0] < box.get_max()[0]) &&
+                   (point[1] > box.get_min()[1] && point[1] < box.get_max()[1]) &&
+                   (point[2] > box.get_min()[2] && point[2] < box.get_max()[2]);
+
+  bool eqCheck = (almostEqual<REAL>(point[0], box.get_min()[0]) || almostEqual<REAL>(point[0], box.get_max()[0]) ||
+                  almostEqual<REAL>(point[1], box.get_min()[1]), almostEqual<REAL>(point[0], box.get_max()[1]) ||
+                  almostEqual<REAL>(point[2], box.get_min()[2]) || almostEqual<REAL>(point[0], box.get_max()[2]));
+
+  return gtltCheck || eqCheck;
 }
 
 //****************************************************
 //* Function to perform AABB intersection test
 //****************************************************
 template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
-  return (a.get_min()[0] <= b.get_max()[0] && a.get_max()[0] >= b.get_min()[0]) &&
-         (a.get_min()[1] <= b.get_max()[1] && a.get_max()[1] >= b.get_min()[1]) &&
-         (a.get_min()[2] <= b.get_max()[2] && a.get_max()[2] >= b.get_min()[2]);
+  bool gtltCheck = (a.get_min()[0] < b.get_max()[0] && a.get_max()[0] > b.get_min()[0]) &&
+                   (a.get_min()[1] < b.get_max()[1] && a.get_max()[1] > b.get_min()[1]) &&
+                   (a.get_min()[2] < b.get_max()[2] && a.get_max()[2] > b.get_min()[2]);
+
+  bool eqCheck = (almostEqual<REAL>(a.get_min()[0], b.get_max()[0])) ||
+                 (almostEqual<REAL>(a.get_min()[1], b.get_max()[1])) ||
+                 (almostEqual<REAL>(a.get_min()[2], b.get_max()[2]));
+
+  return gtltCheck || eqCheck;
 }
 
 //******************************************************************
