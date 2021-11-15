@@ -56,7 +56,7 @@ NUM_SEND_VALUES 7
 # interpolation (i.e. using fetch_points/values)
 USE_INTERPOLATION NO
 
-# Enable or disable whether values received through he MUI interface should be sanity checked compared
+# Enable or disable whether values received through the MUI interface should be sanity checked compared
 # to what is expected through the interface. If using spatial interpolation and a non-colocated set of grids
 # then the check may fail depending on whether the interpolation produces a sane value, in this case the check
 # can be disabled

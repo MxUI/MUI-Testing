@@ -258,14 +258,12 @@ bool run(parameters& params) {
                 if( params.checkValues ) {
                   for( size_t j=0; j<rcvDirectValues.size(); j++ ) {
                     if( rcvDirectValues[j] != rcvValues[interface] ) {
-                      if( params.consoleOut ) {
-                        if( !params.enableMPI )
-                          std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                    << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "}" << std::endl;
-                        else
-                          std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                    << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "} for MPI rank " << mpiRank << std::endl;
-                      }
+                      if( !params.enableMPI )
+                        std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
+                                  << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "}" << std::endl;
+                      else
+                        std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
+                                  << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "} for MPI rank " << mpiRank << std::endl;
                     }
                   }
                 }
@@ -287,9 +285,6 @@ bool run(parameters& params) {
               for( size_t k=0; k<params.ktot; ++k ) {
                 if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
                   for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
-                    if( params.consoleOut && mpiRank == 0 )
-                      std::cout << outName << " " << mpiRank << " Fetching at: " << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << std::endl;
-
                     //Fetch value from interface
                     rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
 
@@ -297,7 +292,7 @@ bool run(parameters& params) {
                       //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
                       checkValue = almostEqual<REAL>(rcvValue, rcvValues[interface]);
 
-                      if( params.consoleOut && !checkValue ) {
+                      if( !checkValue ) {
                         if( !params.enableMPI )
                           std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
                                     << " at point {" << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << "}"
@@ -614,18 +609,19 @@ void printData(parameters& params) {
 
   double sendDataSize = static_cast<double>(params.numMUIValues * sizeof(REAL) * enabledPts) / static_cast<double>(megabyte);
 
-  if( params.staticPoints) {
+  if( params.staticPoints ) {
     double pointAddition = ((static_cast<double>(sizeof(POINT) * enabledPts)) / static_cast<double>(megabyte));
+    double idAddition = ((static_cast<double>(sizeof(size_t) * enabledPts)) / static_cast<double>(megabyte));
     if(params.enableMPI) {
       MPI_Barrier(world);
-      std::cout << outName << " Data to send via MUI for iteration 1 for rank " << mpiRank << ": " << std::setprecision(4) << sendDataSize + pointAddition << " MB (" << enabledPts << " points)" << std::endl;
+      std::cout << outName << " Data to send via MUI for iteration 1 for rank " << mpiRank << ": " << std::setprecision(4) << (sendDataSize + pointAddition + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
       if( params.itCount > 1 )
-        std::cout << outName << " Data to send via MUI for iteration 2+ for rank " << mpiRank << ": " << std::setprecision(4) << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
+        std::cout << outName << " Data to send via MUI for iteration 2+ for rank " << mpiRank << ": " << std::setprecision(4) << (sendDataSize + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
     }
     else {
-      std::cout << outName << " Data to send via MUI for iteration 1: " << std::setprecision(4) << sendDataSize + pointAddition << " MB (" << enabledPts << " points)" << std::endl;
+      std::cout << outName << " Data to send via MUI for iteration 1: " << std::setprecision(4) << (sendDataSize + pointAddition + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
       if( params.itCount > 1 )
-        std::cout << outName << " Data to send via MUI for iteration 2+: " << std::setprecision(4) << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
+        std::cout << outName << " Data to send via MUI for iteration 2+: " << std::setprecision(4) << (sendDataSize + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
     }
   }
   else {
