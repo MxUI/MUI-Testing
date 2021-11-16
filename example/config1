@@ -10,11 +10,10 @@
 ENABLE_LOCAL_MPI YES
 
 # Physical domain size {min} {max}
-
-DOMAIN {0,0,0} {100,100,100}
+DOMAIN {0,0,0} {500,500,250}
 
 # Number of cells in each direction
-NUM_GRID_CELLS {100,100,100}
+NUM_GRID_CELLS {100,100,50}
 
 # Enable console output
 CONSOLE_OUTPUT YES
@@ -54,7 +53,7 @@ NUM_SEND_VALUES 7
 
 # Use Gaussian interpolation for fetch commands, otherwise values are fetched without
 # interpolation (i.e. using fetch_points/values)
-USE_INTERPOLATION NO
+USE_INTERPOLATION YES
 
 # Enable or disable whether values received through the MUI interface should be sanity checked compared
 # to what is expected through the interface. If using spatial interpolation and a non-colocated set of grids

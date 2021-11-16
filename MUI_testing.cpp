@@ -105,15 +105,19 @@ int main(int argc, char** argv) {
   double localTime = tEnd - tStart;
   double globalTime;
 
-  // Perform MPI reduction for time values
-  MPI_Reduce(&localTime, &globalTime, 1, MPI_DOUBLE, MPI_SUM, 0, world);
+  if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
+    MPI_Reduce(&localTime, &globalTime, 1, MPI_DOUBLE, MPI_SUM, 0, world);  // Perform MPI reduction for time values
 
   // Print average time value through master rank
-  if( mpiRank == 0 ) {
+  if( (!params.enableMPI) || (params.enableMPI && mpiRank == 0) ) {
     double avgTime = globalTime / static_cast<double>(mpiWorldSize);
     // Add MPI operation reduce here to get average across ranks
-    std::cout << outName << " Average wall clock value: " << avgTime << " s" << std::endl;
+    std::cout << outName << " Average per-iteration wall clock value: " << (avgTime / static_cast<double>(params.itCount)) << " s" << std::endl;
+    std::cout << outName << " Average total wall clock value: " << avgTime << " s" << std::endl;
   }
+
+  if( params.enableMPI )
+    MPI_Barrier(world);
 
   finalise(params.enableMPI); //Clean up before exit
 
