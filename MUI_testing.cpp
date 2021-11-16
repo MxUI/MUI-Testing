@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 
   // Calculate total runtime for this rank
   double localTime = tEnd - tStart;
-  double globalTime;
+  double globalTime = localTime;
 
   if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
     MPI_Reduce(&localTime, &globalTime, 1, MPI_DOUBLE, MPI_SUM, 0, world);  // Perform MPI reduction for time values
@@ -115,9 +115,6 @@ int main(int argc, char** argv) {
     std::cout << outName << " Average per-iteration wall clock value: " << (avgTime / static_cast<double>(params.itCount)) << " s" << std::endl;
     std::cout << outName << " Average total wall clock value: " << avgTime << " s" << std::endl;
   }
-
-  if( params.enableMPI )
-    MPI_Barrier(world);
 
   finalise(params.enableMPI); //Clean up before exit
 
@@ -135,24 +132,22 @@ bool run(parameters& params) {
   mui::chrono_sampler_exact<mui::tf_config> s2;
 
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
-    //Announce send and receive region for each interface
+    //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      // Create box structure of the overall send region for this interface
-      mui::geometry::box<mui::tf_config> sendRegion({muiInterfaces[interface].domMinSend[0], muiInterfaces[interface].domMinSend[1], muiInterfaces[interface].domMinSend[2]},
-                                                    {muiInterfaces[interface].domMaxSend[0], muiInterfaces[interface].domMaxSend[1], muiInterfaces[interface].domMaxSend[2]});
+      mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
+                                                       {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
-      // Create box structure of the overall send region for this interface
-      mui::geometry::box<mui::tf_config> rcvRegion({muiInterfaces[interface].domMinRcv[0], muiInterfaces[interface].domMinRcv[1], muiInterfaces[interface].domMinRcv[2]},
-                                                   {muiInterfaces[interface].domMaxRcv[0], muiInterfaces[interface].domMaxRcv[1], muiInterfaces[interface].domMaxRcv[2]});
-
-      muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRegion);
-      muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), rcvRegion);
+      muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
+      muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       // Assign value to send to interface
       muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
 
       // Assign number of values to send to interface
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
+
+      //Commit values to interface at t=0 so barrier can release
+      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
     }
   }
   else { //Not using smart_send so only set up receive value
@@ -163,13 +158,10 @@ bool run(parameters& params) {
 
       // Assign number of values to send to interface
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
-    }
-  }
 
-  //Commit at t=0 so other side of interface can release barrier and continue
-  for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-    //Commit values to interface at t=0 so barrier can release
-    muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+      //Commit values to interface at t=0 so barrier can release
+      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+    }
   }
 
   //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
@@ -184,8 +176,8 @@ bool run(parameters& params) {
     //Receive the number of values to be received through the interface
     numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
 
-    // Forget received frame now data stored
-    muiInterfaces[interface].interface->forget(static_cast<TIME>(0));
+    // Forget received frame now data stored and reset MUI data frame log
+    muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
   }
 
   std::vector<POINT> rcvPoints;
@@ -214,15 +206,15 @@ bool run(parameters& params) {
 
   //Iterate for as many times and send/receive through MUI interface(s)
   for(size_t iter=0; iter < static_cast<size_t>(params.itCount); iter++) {
-    TIME currTime = static_cast<TIME>(iter+1);
-
     //Output progress to console
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) //Only perform on master rank if not in serial mode
-        std::cout << outName << " Performing iteration " << iter+1 << std::endl;
+        std::cout << outName << " Completed iteration " << iter+1 << std::endl;
     }
 
-    //Send and receive value for receive from each interface
+    TIME currTime = static_cast<TIME>(iter+1);
+
+    //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
         for( size_t i=0; i<params.itot; ++i ) {
@@ -242,12 +234,7 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->commit(currTime);
     }
 
-    // Add barrier to ensure all interfaces have received values (allows for out-of-order operation)
-    for( size_t i=0; i<muiInterfaces.size(); i++ ) {
-      muiInterfaces[i].interface->barrier(currTime);
-    }
-
-    //Iterate through MUI interfaces
+    //Iterate through MUI interfaces and fetch enabled values
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       //Only fetch if this interface is for receiving or for send & receive
       if( muiInterfaces[interface].sendRecv == 1 || muiInterfaces[interface].sendRecv == 2) {
@@ -321,16 +308,14 @@ bool run(parameters& params) {
     //Sleep process for pre-defined period of time to simulate work being done by host code
     std::this_thread::sleep_for(std::chrono::milliseconds(params.waitIt));
 
+    // If artificial MPI data send enabled then perform (blocking)
     if( params.enableMPI && params.dataToSend > 0 ) {
       int err = MPI_Neighbor_alltoall(sendBuf, params.dataToSend, MPI_MB, recvBuf, params.dataToSend, MPI_MB, comm_cart);
       if(err != MPI_SUCCESS)
         std::cout << "Error: When calling MPI_Neighbor_alltoall" << std::endl;
     }
-  }
-
-  if( params.consoleOut ) {
-    if( !params.enableMPI || (params.enableMPI && mpiRank == 0))
-      std::cout << std::endl;
+    else // No data being sent, introduce MPI barrier here to ensure each rank synchronised
+      MPI_Barrier(world);
   }
 
   return true;
@@ -611,6 +596,7 @@ void printData(parameters& params) {
   }
 
   int enabledPts = 0;
+  int enabledPtsRcv = 0;
 
   for( size_t interface=0; interface<muiInterfaces.size(); interface++ ) {
     for( size_t i=0; i < params.itot; i++ ) {
@@ -618,8 +604,20 @@ void printData(parameters& params) {
         for( size_t k=0; k < params.ktot; k++ ) {
           if( sendEnabled[interface][i][j][k] )
             enabledPts++;
+          if( rcvEnabled[interface][i][j][k] )
+            enabledPtsRcv++;
         }
       }
+    }
+
+    if( params.smartSend ) {
+      // Disable the rank for sending completely (optimisation)
+      if( enabledPts == 0 )
+        muiInterfaces[interface].interface->announce_send_disable();
+
+      // Disable the rank for receiving completely (optimisation)
+      if( enabledPtsRcv == 0 )
+        muiInterfaces[interface].interface->announce_recv_disable();
     }
   }
 
@@ -689,62 +687,6 @@ bool createMUIInterfaces(std::string& muiFileName, parameters& params) {
 
         if(muiInterfaces[j].sendRecv == 1 || muiInterfaces[j].sendRecv == 2)
           rcvInterfaces++; //Increment enabled receive interface count
-
-        // Create box structure of the overall send region for this interface
-        mui::geometry::box<mui::tf_config> sendRegion({muiInterfaces[j].domMinSend[0], muiInterfaces[j].domMinSend[1], muiInterfaces[j].domMinSend[2]},
-                                                      {muiInterfaces[j].domMaxSend[0], muiInterfaces[j].domMaxSend[1], muiInterfaces[j].domMaxSend[2]});
-
-        // Extents overlap defined send region so refine regions to snap to local extents
-        if( intersectBox<mui::tf_config>( rankExtents, sendRegion ) ) {
-          if( sendRegion.get_min()[0] < rankExtents.get_min()[0] )
-            muiInterfaces[j].domMinSend[0] = rankExtents.get_min()[0];
-
-          if( sendRegion.get_max()[0] > rankExtents.get_max()[0] )
-            muiInterfaces[j].domMaxSend[0] = rankExtents.get_max()[0];
-
-          if( sendRegion.get_min()[1] < rankExtents.get_min()[1] )
-            muiInterfaces[j].domMinSend[1] = rankExtents.get_min()[1];
-
-          if( sendRegion.get_max()[1] > rankExtents.get_max()[1] )
-            muiInterfaces[j].domMaxSend[1] = rankExtents.get_max()[1];
-
-          if( sendRegion.get_min()[2] < rankExtents.get_min()[2] )
-            muiInterfaces[j].domMinSend[2] = rankExtents.get_min()[2];
-
-          if( sendRegion.get_max()[2] > rankExtents.get_max()[2] )
-            muiInterfaces[j].domMaxSend[2] = rankExtents.get_max()[2];
-        }
-        else  // current extents don't intersect with prescribed send region, so set Smart Send value to local extents exactly
-          sendRegion = rankExtents;
-
-        // Create box structure of the overall send region for this interface
-        mui::geometry::box<mui::tf_config> rcvRegion({muiInterfaces[j].domMinRcv[0], muiInterfaces[j].domMinRcv[1], muiInterfaces[j].domMinRcv[2]},
-                                                     {muiInterfaces[j].domMaxRcv[0], muiInterfaces[j].domMaxRcv[1], muiInterfaces[j].domMaxRcv[2]});
-
-        // Extents overlap defined send region so refine regions to snap to local extents
-        if( intersectBox<mui::tf_config>( rankExtents, rcvRegion ) ) {
-          if( rcvRegion.get_min()[0] < rankExtents.get_min()[0] )
-            muiInterfaces[j].domMinRcv[0] = rankExtents.get_min()[0];
-
-          if( rcvRegion.get_max()[0] > rankExtents.get_max()[0] )
-            muiInterfaces[j].domMaxRcv[0] = rankExtents.get_max()[0];
-
-          if( rcvRegion.get_min()[1] < rankExtents.get_min()[1] )
-            muiInterfaces[j].domMinRcv[1] = rankExtents.get_min()[1];
-
-          if( rcvRegion.get_max()[1] > rankExtents.get_max()[1] )
-            muiInterfaces[j].domMaxRcv[1] = rankExtents.get_max()[1];
-
-          if( rcvRegion.get_min()[2] < rankExtents.get_min()[2] )
-            muiInterfaces[j].domMinRcv[2] = rankExtents.get_min()[2];
-
-          if( rcvRegion.get_max()[2] > rankExtents.get_max()[2] )
-            muiInterfaces[j].domMaxRcv[2] = rankExtents.get_max()[2];
-        }
-        else  // current extents don't intersect with prescribed receive region, so set Smart Send value to local extents exactly
-          rcvRegion = rankExtents;
-
-        break;
       }
     }
   }
@@ -1182,7 +1124,7 @@ template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::bo
                    (point[2] > box.get_min()[2] && point[2] < box.get_max()[2]);
 
   bool eqCheck = (almostEqual<REAL>(point[0], box.get_min()[0]) || almostEqual<REAL>(point[0], box.get_max()[0]) ||
-                  almostEqual<REAL>(point[1], box.get_min()[1]), almostEqual<REAL>(point[0], box.get_max()[1]) ||
+                  almostEqual<REAL>(point[1], box.get_min()[1]) || almostEqual<REAL>(point[0], box.get_max()[1]) ||
                   almostEqual<REAL>(point[2], box.get_min()[2]) || almostEqual<REAL>(point[0], box.get_max()[2]));
 
   return gtltCheck || eqCheck;
@@ -1191,6 +1133,14 @@ template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::bo
 //****************************************************
 //* Function to perform AABB intersection test
 //****************************************************
+
+template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
+  return (a.get_min()[0] <= b.get_max()[0] && a.get_max()[0] >= b.get_min()[0]) &&
+         (a.get_min()[1] <= b.get_max()[1] && a.get_max()[1] >= b.get_min()[1]) &&
+         (a.get_min()[2] <= b.get_max()[2] && a.get_max()[2] >= b.get_min()[2]);
+}
+
+/*
 template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
   bool gtltCheck = (a.get_min()[0] < b.get_max()[0] && a.get_max()[0] > b.get_min()[0]) &&
                    (a.get_min()[1] < b.get_max()[1] && a.get_max()[1] > b.get_min()[1]) &&
@@ -1202,6 +1152,7 @@ template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::ge
 
   return gtltCheck || eqCheck;
 }
+*/
 
 //******************************************************************
 //* Function to check if two floating point values are almost equal

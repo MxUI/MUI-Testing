@@ -10,7 +10,6 @@
 ENABLE_LOCAL_MPI YES
 
 # Physical domain size {min} {max}
-
 DOMAIN {400,0,0} {900,500,250}
 
 # Number of cells in each direction
