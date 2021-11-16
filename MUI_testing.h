@@ -63,6 +63,8 @@
 #include <thread>
 #include <cstdlib>
 #include <iomanip>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 // MUI specific headers
 #include <mui.h>

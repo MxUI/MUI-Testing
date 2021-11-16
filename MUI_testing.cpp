@@ -553,8 +553,20 @@ bool createGridData(parameters& params) {
   }
 
   if(params.generateCSV) {
+    if (mkdir("csv_output", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
+      if( errno != EEXIST )
+        std::cerr << "Error creating main CSV output folder" << std::endl;
+    }
+
+    std::string dirName = "csv_output/" + params.domainName;
+
+    if (mkdir(dirName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
+      if( errno != EEXIST )
+        std::cerr << "Error creating domain CSV output folder" << std::endl;
+    }
+
     std::ofstream out;
-    std::string filename = params.domainName + "_partition_" + std::to_string(mpiRank) + ".csv";
+    std::string filename = dirName + "/partition_" + std::to_string(mpiRank) + ".csv";
     out.open(filename, std::ios::out | std::ios::trunc);
     if(!out.is_open()) {
       std::cerr << outName << " Could not open file: " << filename << std::endl;
