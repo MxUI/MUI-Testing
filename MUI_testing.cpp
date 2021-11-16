@@ -209,7 +209,7 @@ bool run(parameters& params) {
     //Output progress to console
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) //Only perform on master rank if not in serial mode
-        std::cout << outName << " Completed iteration " << iter+1 << std::endl;
+        std::cout << outName << " Starting iteration " << iter+1 << std::endl;
     }
 
     TIME currTime = static_cast<TIME>(iter+1);
@@ -316,6 +316,12 @@ bool run(parameters& params) {
     }
     else // No data being sent, introduce MPI barrier here to ensure each rank synchronised
       MPI_Barrier(world);
+
+    //Output progress to console
+    if( params.consoleOut ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) //Only perform on master rank if not in serial mode
+        std::cout << outName << " Completed iteration " << iter+1 << std::endl;
+    }
   }
 
   return true;
