@@ -686,31 +686,6 @@ void printData(parameters& params) {
         muiInterfaces[interface].enabledRcv = false;
     }
   }
-
-  double sendDataSize = static_cast<double>(params.numMUIValues * sizeof(REAL) * enabledPts) / static_cast<double>(megabyte);
-
-  if( params.staticPoints ) {
-    double pointAddition = ((static_cast<double>(sizeof(POINT) * enabledPts)) / static_cast<double>(megabyte));
-    double idAddition = ((static_cast<double>(sizeof(size_t) * enabledPts)) / static_cast<double>(megabyte));
-    if(params.enableMPI) {
-      std::cout << outName << " Data to send via MUI for iteration 1 for rank " << mpiRank << ": " << std::setprecision(4) << (sendDataSize + pointAddition + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
-      if( params.itCount > 1 )
-        std::cout << outName << " Data to send via MUI for iteration 2+ for rank " << mpiRank << ": " << std::setprecision(4) << (sendDataSize + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
-    }
-    else {
-      std::cout << outName << " Data to send via MUI for iteration 1: " << std::setprecision(4) << (sendDataSize + pointAddition + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
-      if( params.itCount > 1 )
-        std::cout << outName << " Data to send via MUI for iteration 2+: " << std::setprecision(4) << (sendDataSize + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
-    }
-  }
-  else {
-    double pointAddition = ((static_cast<double>(sizeof(POINT) * enabledPts)) / static_cast<double>(megabyte));
-    if(params.enableMPI) {
-      std::cout << outName << " Data to send via MUI for rank " << mpiRank << ": " << std::setprecision(4) << sendDataSize + pointAddition << " MB (" << enabledPts << " points)" << std::endl;
-    }
-    else
-      std::cout << outName << " Data to send via MUI: " << std::setprecision(4) << sendDataSize << " MB (" << enabledPts << " points)" << std::endl;
-  }
 }
 
 //****************************************************
