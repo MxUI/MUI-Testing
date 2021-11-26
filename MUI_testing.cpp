@@ -131,7 +131,7 @@ bool run(parameters& params) {
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Initialising Smart Send and sending initial values to all peers" << std::endl;
+        std::cout << outName << " Initialising Smart Send and sending initial values" << std::endl;
       }
     }
 
@@ -141,8 +141,10 @@ bool run(parameters& params) {
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      if( !muiInterfaces[interface].enabledSend )
-        muiInterfaces[interface].interface->announce_send_disable();
+      if( !muiInterfaces[interface].enabledSend ) {
+        std::cout << "send disabled" << std::endl;
+    	  muiInterfaces[interface].interface->announce_send_disable();
+      }
       else
         muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
@@ -153,7 +155,7 @@ bool run(parameters& params) {
         muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Commit Smart Send flag to interface so opposing barrier can release
-      //muiInterfaces[interface].interface->commit_ss();
+      muiInterfaces[interface].interface->commit_ss();
     }
 
     //Smart Send barrier to ensure other side of interface has pushed smart send values
@@ -161,10 +163,13 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->barrier_ss();
     }
 
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      // Forget received time frame and reset log
-      muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
+    if( params.consoleOut ) {
+	  if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+		std::cout << outName << " Smart Send set up complete" << std::endl;
+	  }
+	}
 
+    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       // Assign value to send to interface
       muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
 
@@ -177,7 +182,7 @@ bool run(parameters& params) {
 
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Smart Send and initial values sent" << std::endl;
+        std::cout << outName << " Initial values sent" << std::endl;
       }
     }
   }
