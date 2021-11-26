@@ -137,20 +137,34 @@ bool run(parameters& params) {
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      /*
-      if( !muiInterfaces[interface].enabledSend )
-        muiInterfaces[interface].interface->announce_send_disable();
-      //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      if( !muiInterfaces[interface].enabledRcv )
-        muiInterfaces[interface].interface->announce_recv_disable();
-      */
-
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
-      muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
-      muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
+      //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
+      if( !muiInterfaces[interface].enabledSend )
+        muiInterfaces[interface].interface->announce_send_disable();
+      else
+        muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
+
+
+      //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
+      if( !muiInterfaces[interface].enabledRcv )
+        muiInterfaces[interface].interface->announce_recv_disable();
+      else
+        muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
+
+      //Commit values to interface at t=0 so barrier can release
+      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+    }
+
+    //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks
+    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+      muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
+    }
+
+    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+      // Forget received time frame and reset log
+      muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
 
       // Assign value to send to interface
       muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
@@ -259,81 +273,85 @@ bool run(parameters& params) {
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
-        for( size_t i=0; i<params.itot; ++i ) {
-          for( size_t j=0; j<params.jtot; ++j ) {
-            for( size_t k=0; k<params.ktot; ++k ) {
-              if( sendEnabled[interface][i][j][k] ) { //Push the value if it is enabled for this rank
-                for( size_t vals=0; vals<sendParams.size(); vals++ ) {
-                  //Push value to interface
-                  muiInterfaces[interface].interface->push(sendParams[vals], array3d_send[i][j][k].point, array3d_send[i][j][k].value);
+        if( muiInterfaces[interface].enabledSend ) { // Only attempt if the interface is set to enabled for send
+          for( size_t i=0; i<params.itot; ++i ) {
+            for( size_t j=0; j<params.jtot; ++j ) {
+              for( size_t k=0; k<params.ktot; ++k ) {
+                if( sendEnabled[interface][i][j][k] ) { //Push the value if it is enabled for this rank
+                  for( size_t vals=0; vals<sendParams.size(); vals++ ) {
+                    //Push value to interface
+                    muiInterfaces[interface].interface->push(sendParams[vals], array3d_send[i][j][k].point, array3d_send[i][j][k].value);
+                  }
                 }
               }
             }
           }
+          //Commit values to interface
+          muiInterfaces[interface].interface->commit(currTime);
         }
       }
-      //Commit values to interface
-      muiInterfaces[interface].interface->commit(currTime);
     }
 
     //Iterate through MUI interfaces and fetch enabled values
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       //Only fetch if this interface is for receiving or for send & receive
       if( muiInterfaces[interface].sendRecv == 1 || muiInterfaces[interface].sendRecv == 2) {
-        if( !params.useInterp ) { // Using direct receive
-          for( size_t vals=0; vals<numValues[interface]; vals++) {
-            rcvPoints = muiInterfaces[interface].interface->fetch_points<REAL>(rcvParams[interface][vals], currTime, s2);
+        if( muiInterfaces[interface].enabledRcv ) { // Only attempt if the interface is set to enabled for receive
+          if( !params.useInterp ) { // Using direct receive
+            for( size_t vals=0; vals<numValues[interface]; vals++) {
+              rcvPoints = muiInterfaces[interface].interface->fetch_points<REAL>(rcvParams[interface][vals], currTime, s2);
 
-            if( rcvPoints.size() != 0 ) { //Check if any points exist in the interface for this rank
-              rcvDirectValues = muiInterfaces[interface].interface->fetch_values<REAL>(rcvParams[interface][vals], currTime, s2);
+              if( rcvPoints.size() != 0 ) { //Check if any points exist in the interface for this rank
+                rcvDirectValues = muiInterfaces[interface].interface->fetch_values<REAL>(rcvParams[interface][vals], currTime, s2);
 
-              if( rcvDirectValues.size() != 0 ) {  //If values received then check they make sense
-                if( params.checkValues ) {
-                  for( size_t j=0; j<rcvDirectValues.size(); j++ ) {
-                    if( rcvDirectValues[j] != rcvValues[interface] ) {
-                      if( !params.enableMPI )
-                        std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                  << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "}" << std::endl;
-                      else
-                        std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                  << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "} for MPI rank " << mpiRank << std::endl;
+                if( rcvDirectValues.size() != 0 ) {  //If values received then check they make sense
+                  if( params.checkValues ) {
+                    for( size_t j=0; j<rcvDirectValues.size(); j++ ) {
+                      if( rcvDirectValues[j] != rcvValues[interface] ) {
+                        if( !params.enableMPI )
+                          std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
+                                    << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "}" << std::endl;
+                        else
+                          std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
+                                    << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "} for MPI rank " << mpiRank << std::endl;
+                      }
                     }
                   }
                 }
-              }
-              else { //No values were received, report error
-                if( params.consoleOut ) {
-                  if( !params.enableMPI )
-                    std::cout << outName << " Error: No values found in interface but points exist " << muiInterfaces[interface].interfaceName << std::endl;
-                  else
-                    std::cout << outName << " Error: No values found in interface but points exist " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
+                else { //No values were received, report error
+                  if( params.consoleOut ) {
+                    if( !params.enableMPI )
+                      std::cout << outName << " Error: No values found in interface but points exist " << muiInterfaces[interface].interfaceName << std::endl;
+                    else
+                      std::cout << outName << " Error: No values found in interface but points exist " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
+                  }
                 }
               }
             }
           }
-        }
-        else { // Using spatial interpolation
-          for( size_t i=0; i<params.itot; ++i ) {
-            for( size_t j=0; j<params.jtot; ++j ) {
-              for( size_t k=0; k<params.ktot; ++k ) {
-                if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
-                  for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
-                    //Fetch value from interface
-                    rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
+          else { // Using spatial interpolation
+            for( size_t i=0; i<params.itot; ++i ) {
+              for( size_t j=0; j<params.jtot; ++j ) {
+                for( size_t k=0; k<params.ktot; ++k ) {
+                  if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
+                    for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
+                      //Fetch value from interface
+                      rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
 
-                    if( params.checkValues ) {
-                      //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
-                      checkValue = almostEqual<REAL>(rcvValue, rcvValues[interface]);
+                      if( params.checkValues ) {
+                        //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
+                        checkValue = almostEqual<REAL>(rcvValue, rcvValues[interface]);
 
-                      if( !checkValue ) {
-                        if( !params.enableMPI )
-                          std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                    << " at point {" << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << "}"
-                                    << std::endl;
-                        else if ( mpiRank == 0)
-                          std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                    << " at point {" << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << "} for MPI rank "
-                                    << mpiRank << std::endl;
+                        if( !checkValue ) {
+                          if( !params.enableMPI )
+                            std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
+                                      << " at point {" << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << "}"
+                                      << std::endl;
+                          else if ( mpiRank == 0)
+                            std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
+                                      << " at point {" << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << "} for MPI rank "
+                                      << mpiRank << std::endl;
+                        }
                       }
                     }
                   }
@@ -341,9 +359,9 @@ bool run(parameters& params) {
               }
             }
           }
+          // Forget fetched data frame from MUI interface to ensure memory free'd
+          muiInterfaces[interface].interface->forget(currTime);
         }
-        // Forget fetched data frame from MUI interface to ensure memory free'd
-        muiInterfaces[interface].interface->forget(currTime);
       }
     }
 
