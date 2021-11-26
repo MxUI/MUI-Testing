@@ -162,14 +162,10 @@ bool run(parameters& params) {
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      if( !muiInterfaces[interface].enabledSend ) {
-    	std::cout << outName << " MUI Testing announcing send disable for rank " << mpiRank << std::endl;
+      if( !muiInterfaces[interface].enabledSend )
     	muiInterfaces[interface].interface->announce_send_disable();
-      }
-      else {
-        std::cout << outName << " MUI Testing announcing smart send for rank " << mpiRank << std::endl;
+      else
         muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
-      }
 
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
       if( !muiInterfaces[interface].enabledRcv )
@@ -200,7 +196,7 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
 
       //Commit values to interface at t=0 so barrier can release
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+      muiInterfaces[interface].interface->commit(static_cast<TIME>(10));
     }
 
     if( params.consoleOut ) {
@@ -243,7 +239,7 @@ bool run(parameters& params) {
 
   //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-    muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
+    muiInterfaces[interface].interface->barrier(static_cast<TIME>(10));
   }
 
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
@@ -254,7 +250,7 @@ bool run(parameters& params) {
     numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
 
     // Forget received frame now data stored and reset MUI data frame log
-    muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
+    muiInterfaces[interface].interface->forget(static_cast<TIME>(10), true);
   }
 
   if( params.consoleOut ) {
