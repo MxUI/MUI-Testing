@@ -132,6 +132,12 @@ bool run(parameters& params) {
   mui::chrono_sampler_exact<mui::tf_config> s2;
 
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
+    if( params.consoleOut ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        std::cout << outName << "Initialising Smart Send and sending initial values to all peers" << std::endl;
+      }
+    }
+
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
@@ -149,8 +155,20 @@ bool run(parameters& params) {
       //Commit values to interface at t=0 so barrier can release
       muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
     }
+
+    if( params.consoleOut ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        std::cout << outName << "Smart Send and initial values sent" << std::endl;
+      }
+    }
   }
   else { //Not using smart_send so only set up receive value
+    if( params.consoleOut ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        std::cout << outName << "Sending initial values to all peers" << std::endl;
+      }
+    }
+
     //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       // Assign value to send to interface
@@ -161,6 +179,18 @@ bool run(parameters& params) {
 
       //Commit values to interface at t=0 so barrier can release
       muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+    }
+
+    if( params.consoleOut ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        std::cout << outName << "Initial values sent" << std::endl;
+      }
+    }
+  }
+
+  if( params.consoleOut ) {
+    if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+      std::cout << outName << "Waiting to receive initial values" << std::endl;
     }
   }
 
@@ -178,6 +208,12 @@ bool run(parameters& params) {
 
     // Forget received frame now data stored and reset MUI data frame log
     muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
+  }
+
+  if( params.consoleOut ) {
+    if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+      std::cout << outName << "Initial values received, starting iterations" << std::endl;
+    }
   }
 
   std::vector<POINT> rcvPoints;
