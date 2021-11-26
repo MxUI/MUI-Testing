@@ -352,13 +352,15 @@ bool run(parameters& params) {
     std::this_thread::sleep_for(std::chrono::milliseconds(params.waitIt));
 
     // If artificial MPI data send enabled then perform (blocking)
-    if( params.enableMPI && params.dataToSend > 0 ) {
-      int err = MPI_Neighbor_alltoall(sendBuf, params.dataToSend, MPI_MB, recvBuf, params.dataToSend, MPI_MB, comm_cart);
-      if(err != MPI_SUCCESS)
-        std::cout << "Error: When calling MPI_Neighbor_alltoall" << std::endl;
+    if( params.enableMPI ) {
+      if( params.dataToSend > 0 ) {
+        int err = MPI_Neighbor_alltoall(sendBuf, params.dataToSend, MPI_MB, recvBuf, params.dataToSend, MPI_MB, comm_cart);
+        if(err != MPI_SUCCESS)
+          std::cout << "Error: When calling MPI_Neighbor_alltoall" << std::endl;
+        }
+      else // No data being sent, introduce MPI barrier here to ensure each rank synchronised
+        MPI_Barrier(comm_cart);
     }
-    else // No data being sent, introduce MPI barrier here to ensure each rank synchronised
-      MPI_Barrier(comm_cart);
 
     //Output progress to console
     if( params.consoleOut ) {
