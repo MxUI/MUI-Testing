@@ -379,8 +379,10 @@ bool run(parameters& params) {
                     }
                   }
                   else if( !params.smartSend ) { // Not using Smart Send so need to fetch anyway to clear MPI buffers (will return zero)
-                    //Fetch value from interface
-                    muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
+                    for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
+                      //Fetch value from interface
+                      muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
+                    }
                   }
                 }
               }
