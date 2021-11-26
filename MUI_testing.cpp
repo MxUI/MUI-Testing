@@ -137,6 +137,28 @@ bool run(parameters& params) {
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+      int enabledPts = 0;
+      int enabledPtsRcv = 0;
+
+      for( size_t i=0; i < params.itot; i++ ) {
+        for( size_t j=0; j < params.jtot; j++ ) {
+          for( size_t k=0; k < params.ktot; k++ ) {
+            if( sendEnabled[interface][i][j][k] )
+              enabledPts++;
+            if( rcvEnabled[interface][i][j][k] )
+              enabledPtsRcv++;
+          }
+        }
+      }
+
+      // Disable the rank for sending completely (optimisation)
+      if( enabledPts == 0 )
+        muiInterfaces[interface].enabledSend = false;
+
+      // Disable the rank for receiving completely (optimisation)
+      if( enabledPtsRcv == 0 )
+        muiInterfaces[interface].enabledRcv = false;
+
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
@@ -665,32 +687,6 @@ void printData(parameters& params) {
     std::cout << outName << " Value checking: " << (params.checkValues? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Artificial MPI data overhead: " << ((params.dataToSend > 0 && params.enableMPI)? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Artificial work time: " << params.waitIt << " ms" << std::endl;
-  }
-
-  int enabledPts = 0;
-  int enabledPtsRcv = 0;
-
-  for( size_t interface=0; interface<muiInterfaces.size(); interface++ ) {
-    for( size_t i=0; i < params.itot; i++ ) {
-      for( size_t j=0; j < params.jtot; j++ ) {
-        for( size_t k=0; k < params.ktot; k++ ) {
-          if( sendEnabled[interface][i][j][k] )
-            enabledPts++;
-          if( rcvEnabled[interface][i][j][k] )
-            enabledPtsRcv++;
-        }
-      }
-    }
-
-    if( params.smartSend ) {
-      // Disable the rank for sending completely (optimisation)
-      if( enabledPts == 0 )
-        muiInterfaces[interface].enabledSend = false;
-
-      // Disable the rank for receiving completely (optimisation)
-      if( enabledPtsRcv == 0 )
-        muiInterfaces[interface].enabledRcv = false;
-    }
   }
 }
 
