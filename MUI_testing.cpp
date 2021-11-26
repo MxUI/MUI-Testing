@@ -250,7 +250,7 @@ bool run(parameters& params) {
     numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
 
     // Forget received frame now data stored and reset MUI data frame log
-    muiInterfaces[interface].interface->forget(static_cast<TIME>(10), true);
+    muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
   }
 
   if( params.consoleOut ) {
@@ -377,6 +377,10 @@ bool run(parameters& params) {
                         }
                       }
                     }
+                  }
+                  else if( !params.smartSend ) { // Not using Smart Send so need to fetch anyway to clear MPI buffers (will return zero)
+                    //Fetch value from interface
+                    muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
                   }
                 }
               }
