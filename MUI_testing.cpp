@@ -153,7 +153,7 @@ bool run(parameters& params) {
         muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Commit Smart Send flag to interface so opposing barrier can release
-      muiInterfaces[interface].interface->commit_ss();
+      //muiInterfaces[interface].interface->commit_ss();
     }
 
     //Smart Send barrier to ensure other side of interface has pushed smart send values
