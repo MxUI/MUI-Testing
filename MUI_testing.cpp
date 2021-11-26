@@ -1177,14 +1177,14 @@ template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::bo
 //****************************************************
 //* Function to perform AABB intersection test
 //****************************************************
-
+/*
 template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
   return (a.get_min()[0] <= b.get_max()[0] && a.get_max()[0] >= b.get_min()[0]) &&
          (a.get_min()[1] <= b.get_max()[1] && a.get_max()[1] >= b.get_min()[1]) &&
          (a.get_min()[2] <= b.get_max()[2] && a.get_max()[2] >= b.get_min()[2]);
 }
+*/
 
-/*
 template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
   bool gtltCheck = (a.get_min()[0] < b.get_max()[0] && a.get_max()[0] > b.get_min()[0]) &&
                    (a.get_min()[1] < b.get_max()[1] && a.get_max()[1] > b.get_min()[1]) &&
@@ -1196,7 +1196,6 @@ template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::ge
 
   return gtltCheck || eqCheck;
 }
-*/
 
 //******************************************************************
 //* Function to check if two floating point values are almost equal
