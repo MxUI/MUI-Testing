@@ -137,27 +137,26 @@ bool run(parameters& params) {
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      int enabledPts = 0;
-      int enabledPtsRcv = 0;
+      bool enabledPts = false;
+      bool enabledPtsRcv = false;
 
       for( size_t i=0; i < params.itot; i++ ) {
         for( size_t j=0; j < params.jtot; j++ ) {
           for( size_t k=0; k < params.ktot; k++ ) {
-            if( sendEnabled[interface][i][j][k] )
-              enabledPts++;
-            if( rcvEnabled[interface][i][j][k] )
-              enabledPtsRcv++;
+            if( sendEnabled[interface][i][j][k] ) {
+              enabledPts = true;
+              if ( enabledPtsRcv ) break;
+            }
+            if( rcvEnabled[interface][i][j][k] ) {
+              enabledPtsRcv = true;
+              if ( enabledPts ) break;
+            }
           }
         }
       }
 
-      // Disable the rank for sending completely (optimisation)
-      if( enabledPts == 0 )
-        muiInterfaces[interface].enabledSend = false;
-
-      // Disable the rank for receiving completely (optimisation)
-      if( enabledPtsRcv == 0 )
-        muiInterfaces[interface].enabledRcv = false;
+      muiInterfaces[interface].enabledSend = enabledPts;
+      muiInterfaces[interface].enabledRcv = enabledPtsRcv;
 
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
@@ -167,14 +166,14 @@ bool run(parameters& params) {
     	std::cout << outName << " MUI Testing announcing send disable for rank " << mpiRank << std::endl;
     	muiInterfaces[interface].interface->announce_send_disable();
       }
-      else
+      else {
+        std::cout << outName << " MUI Testing announcing smart send for rank " << mpiRank << std::endl;
         muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
+      }
 
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      if( !muiInterfaces[interface].enabledRcv ) {
-    	  std::cout << outName << " MUI Testing announcing rcv disable for rank " << mpiRank << std::endl;
+      if( !muiInterfaces[interface].enabledRcv )
     	  muiInterfaces[interface].interface->announce_recv_disable();
-      }
       else
         muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
