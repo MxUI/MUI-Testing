@@ -149,6 +149,8 @@ struct muiInterface {
   POINT domMaxSend; //The maximum of the domain for the interface to send
   POINT domMinRcv; //The minimum of the domain for the interface to receive
   POINT domMaxRcv; //The maximum of the domain for the interface to receive
+  bool enabledSend; //Specify whether the interface is enabled (disabled if no points to send)
+  bool enabledRcv; //Specify whether the interface is enabled (disabled if no points to receive)
 
   muiInterface() :
     interfaceName(),
@@ -157,7 +159,9 @@ struct muiInterface {
     domMinSend({0,0,0}),
     domMaxSend({0,0,0}),
     domMinRcv({0,0,0}),
-    domMaxRcv({0,0,0})
+    domMaxRcv({0,0,0}),
+    enabledSend(true),
+    enabledRcv(true)
   {}
 };
 

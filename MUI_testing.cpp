@@ -86,13 +86,13 @@ int main(int argc, char** argv) {
     return 0;
 
   if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
-    MPI_Barrier(world);
+    MPI_Barrier(comm_cart);
 
   if( params.consoleOut )
     printData(params); //Print information to console
 
   if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
-    MPI_Barrier(world);
+    MPI_Barrier(comm_cart);
 
   tStart = MPI_Wtime(); //Get start timer
 
@@ -140,6 +140,13 @@ bool run(parameters& params) {
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+      //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
+      if( !muiInterfaces[interface].enabledSend )
+        muiInterfaces[interface].interface->announce_send_disable();
+      //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
+      if( !muiInterfaces[interface].enabledRcv )
+        muiInterfaces[interface].interface->announce_recv_disable();
+
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
@@ -351,7 +358,7 @@ bool run(parameters& params) {
         std::cout << "Error: When calling MPI_Neighbor_alltoall" << std::endl;
     }
     else // No data being sent, introduce MPI barrier here to ensure each rank synchronised
-      MPI_Barrier(world);
+      MPI_Barrier(comm_cart);
 
     //Output progress to console
     if( params.consoleOut ) {
@@ -655,11 +662,11 @@ void printData(parameters& params) {
     if( params.smartSend ) {
       // Disable the rank for sending completely (optimisation)
       if( enabledPts == 0 )
-        muiInterfaces[interface].interface->announce_send_disable();
+        muiInterfaces[interface].enabledSend = false;
 
       // Disable the rank for receiving completely (optimisation)
       if( enabledPtsRcv == 0 )
-        muiInterfaces[interface].interface->announce_recv_disable();
+        muiInterfaces[interface].enabledRcv = false;
     }
   }
 
@@ -669,7 +676,6 @@ void printData(parameters& params) {
     double pointAddition = ((static_cast<double>(sizeof(POINT) * enabledPts)) / static_cast<double>(megabyte));
     double idAddition = ((static_cast<double>(sizeof(size_t) * enabledPts)) / static_cast<double>(megabyte));
     if(params.enableMPI) {
-      MPI_Barrier(world);
       std::cout << outName << " Data to send via MUI for iteration 1 for rank " << mpiRank << ": " << std::setprecision(4) << (sendDataSize + pointAddition + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
       if( params.itCount > 1 )
         std::cout << outName << " Data to send via MUI for iteration 2+ for rank " << mpiRank << ": " << std::setprecision(4) << (sendDataSize + idAddition) << " MB (" << enabledPts << " points)" << std::endl;
@@ -683,7 +689,6 @@ void printData(parameters& params) {
   else {
     double pointAddition = ((static_cast<double>(sizeof(POINT) * enabledPts)) / static_cast<double>(megabyte));
     if(params.enableMPI) {
-      MPI_Barrier(world);
       std::cout << outName << " Data to send via MUI for rank " << mpiRank << ": " << std::setprecision(4) << sendDataSize + pointAddition << " MB (" << enabledPts << " points)" << std::endl;
     }
     else
