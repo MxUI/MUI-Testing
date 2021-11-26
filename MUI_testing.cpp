@@ -196,7 +196,9 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
 
       //Commit values to interface at t=0 so barrier can release
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+      int peers = muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+
+      std::cout << outName << " Commit to " << peers << " peers" << std::endl;
     }
 
     if( params.consoleOut ) {
