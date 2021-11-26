@@ -86,10 +86,13 @@ int main(int argc, char** argv) {
     return 0;
 
   if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
-    MPI_Barrier(comm_cart);
+    MPI_Barrier(world);
 
   if( params.consoleOut )
     printData(params); //Print information to console
+
+  if( params.enableMPI ) //Ensure each rank has output to the console before continuing
+    MPI_Barrier(world);
 
   tStart = MPI_Wtime(); //Get start timer
 
@@ -131,7 +134,7 @@ bool run(parameters& params) {
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << "Initialising Smart Send and sending initial values to all peers" << std::endl;
+        std::cout << outName << " Initialising Smart Send and sending initial values to all peers" << std::endl;
       }
     }
 
@@ -162,14 +165,14 @@ bool run(parameters& params) {
 
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << "Smart Send and initial values sent" << std::endl;
+        std::cout << outName << " Smart Send and initial values sent" << std::endl;
       }
     }
   }
   else { //Not using smart_send so only set up receive value
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << "Sending initial values to all peers" << std::endl;
+        std::cout << outName << " Sending initial values to all peers" << std::endl;
       }
     }
 
@@ -187,14 +190,14 @@ bool run(parameters& params) {
 
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << "Initial values sent" << std::endl;
+        std::cout << outName << " Initial values sent" << std::endl;
       }
     }
   }
 
   if( params.consoleOut ) {
     if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-      std::cout << outName << "Waiting to receive initial values" << std::endl;
+      std::cout << outName << " Waiting to receive initial values" << std::endl;
     }
   }
 
@@ -355,8 +358,6 @@ bool run(parameters& params) {
         if(err != MPI_SUCCESS)
           std::cout << "Error: When calling MPI_Neighbor_alltoall" << std::endl;
         }
-      else // No data being sent, introduce MPI barrier here to ensure each rank synchronised
-        MPI_Barrier(comm_cart);
     }
 
     //Output progress to console
