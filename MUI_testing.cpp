@@ -196,7 +196,7 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
 
       //Commit values to interface at t=0 so barrier can release
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(10));
+      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
     }
 
     if( params.consoleOut ) {
@@ -239,7 +239,7 @@ bool run(parameters& params) {
 
   //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-    muiInterfaces[interface].interface->barrier(static_cast<TIME>(10));
+    muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
   }
 
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
