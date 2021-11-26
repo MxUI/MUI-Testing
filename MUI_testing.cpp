@@ -91,9 +91,6 @@ int main(int argc, char** argv) {
   if( params.consoleOut )
     printData(params); //Print information to console
 
-  if( params.enableMPI ) //Ensure each rank has output to the console before continuing
-    MPI_Barrier(world);
-
   tStart = MPI_Wtime(); //Get start timer
 
   if( !run(params) ) //Do work through the MUI interface
