@@ -91,9 +91,6 @@ int main(int argc, char** argv) {
   if( params.consoleOut )
     printData(params); //Print information to console
 
-  if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
-    MPI_Barrier(comm_cart);
-
   tStart = MPI_Wtime(); //Get start timer
 
   if( !run(params) ) //Do work through the MUI interface
