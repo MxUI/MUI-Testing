@@ -146,20 +146,19 @@ bool run(parameters& params) {
       else
         muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
-
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
       if( !muiInterfaces[interface].enabledRcv )
         muiInterfaces[interface].interface->announce_recv_disable();
       else
         muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
-      //Commit values to interface at t=0 so barrier can release
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+      //Commit Smart Send flag to interface so opposing barrier can release
+      muiInterfaces[interface].interface->commit_ss();
     }
 
-    //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks
+    //Smart Send barrier to ensure other side of interface has pushed smart send values
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
+      muiInterfaces[interface].interface->barrier_ss();
     }
 
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
