@@ -141,11 +141,13 @@ bool run(parameters& params) {
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
+      /*
       if( !muiInterfaces[interface].enabledSend )
         muiInterfaces[interface].interface->announce_send_disable();
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
       if( !muiInterfaces[interface].enabledRcv )
         muiInterfaces[interface].interface->announce_recv_disable();
+      */
 
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
@@ -219,7 +221,7 @@ bool run(parameters& params) {
 
   if( params.consoleOut ) {
     if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-      std::cout << outName << "Initial values received, starting iterations" << std::endl;
+      std::cout << outName << " Initial values received, starting iterations" << std::endl;
     }
   }
 
