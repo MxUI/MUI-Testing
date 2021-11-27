@@ -165,12 +165,12 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      //if( !muiInterfaces[interface].enabledSend )
-        //muiInterfaces[interface].interface->announce_send_disable();
+      if( !muiInterfaces[interface].enabledSend )
+        muiInterfaces[interface].interface->announce_send_disable();
 
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      //if( !muiInterfaces[interface].enabledRcv )
-    	  //muiInterfaces[interface].interface->announce_recv_disable();
+      if( !muiInterfaces[interface].enabledRcv )
+    	  muiInterfaces[interface].interface->announce_recv_disable();
 
       //Commit Smart Send flag to interface so opposing barrier can release
       muiInterfaces[interface].interface->commit_ss();
@@ -295,7 +295,7 @@ bool run(parameters& params) {
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
-        if( muiInterfaces[interface].enabledSend ) { // Only attempt if the interface is set to enabled for send
+       // if( muiInterfaces[interface].enabledSend ) { // Only attempt if the interface is set to enabled for send
           for( size_t i=0; i<params.itot; ++i ) {
             for( size_t j=0; j<params.jtot; ++j ) {
               for( size_t k=0; k<params.ktot; ++k ) {
@@ -310,7 +310,7 @@ bool run(parameters& params) {
           }
           //Commit values to interface
           muiInterfaces[interface].interface->commit(currTime);
-        }
+        //}
       }
     }
 
@@ -318,7 +318,7 @@ bool run(parameters& params) {
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       //Only fetch if this interface is for receiving or for send & receive
       if( muiInterfaces[interface].sendRecv == 1 || muiInterfaces[interface].sendRecv == 2) {
-        if( muiInterfaces[interface].enabledRcv ) { // Only attempt if the interface is set to enabled for receive
+        //if( muiInterfaces[interface].enabledRcv ) { // Only attempt if the interface is set to enabled for receive
           if( !params.useInterp ) { // Using direct receive
             for( size_t vals=0; vals<numValues[interface]; vals++) {
               rcvPoints = muiInterfaces[interface].interface->fetch_points<REAL>(rcvParams[interface][vals], currTime, s2);
@@ -389,7 +389,7 @@ bool run(parameters& params) {
           }
           // Forget fetched data frame from MUI interface to ensure memory free'd
           muiInterfaces[interface].interface->forget(currTime);
-        }
+        //}
       }
     }
 
