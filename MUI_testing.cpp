@@ -135,6 +135,20 @@ bool run(parameters& params) {
       }
     }
 
+    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+      // Assign value to send to interface
+      muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
+
+      // Assign number of values to send to interface
+      muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
+    }
+
+    if( params.consoleOut ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        std::cout << outName << " Initial values sent" << std::endl;
+      }
+    }
+
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       bool enabledPts = false;
@@ -186,23 +200,6 @@ bool run(parameters& params) {
         std::cout << outName << " Smart Send set up complete" << std::endl;
       }
     }
-
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      // Assign value to send to interface
-      muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
-
-      // Assign number of values to send to interface
-      muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
-
-      //Commit values to interface at t=0 so barrier can release
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
-    }
-
-    if( params.consoleOut ) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Initial values sent" << std::endl;
-      }
-    }
   }
   else { //Not using smart_send so only set up receive value
     if( params.consoleOut ) {
@@ -218,9 +215,6 @@ bool run(parameters& params) {
 
       // Assign number of values to send to interface
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
-
-      //Commit values to interface at t=0 so barrier can release
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
     }
 
     if( params.consoleOut ) {
@@ -232,13 +226,8 @@ bool run(parameters& params) {
 
   if( params.consoleOut ) {
     if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-      std::cout << outName << " Waiting to receive initial values" << std::endl;
+      std::cout << outName << " Receiving initial values" << std::endl;
     }
-  }
-
-  //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
-  for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-    muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
   }
 
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
@@ -247,9 +236,6 @@ bool run(parameters& params) {
 
     //Receive the number of values to be received through the interface
     numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
-
-    // Forget received frame now data stored and reset MUI data frame log
-    muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
   }
 
   if( params.consoleOut ) {
