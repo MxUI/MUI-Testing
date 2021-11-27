@@ -162,15 +162,15 @@ bool run(parameters& params) {
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      //if( !muiInterfaces[interface].enabledSend )
-    	//muiInterfaces[interface].interface->announce_send_disable();
-      //else
+      if( !muiInterfaces[interface].enabledSend )
+    	muiInterfaces[interface].interface->announce_send_disable();
+      else
         muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      //if( !muiInterfaces[interface].enabledRcv )
-    	  //muiInterfaces[interface].interface->announce_recv_disable();
-      //else
+      if( !muiInterfaces[interface].enabledRcv )
+    	  muiInterfaces[interface].interface->announce_recv_disable();
+      else
         muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Commit Smart Send flag to interface so opposing barrier can release
