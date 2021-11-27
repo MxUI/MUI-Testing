@@ -20,7 +20,7 @@ CONSOLE_OUTPUT YES
 
 # Use Smart Send, if enabled then SEND_DOMAIN and RECEIVE_DOMAIN values 
 # from the interface config file are used
-USE_SMART_SEND YES
+USE_SMART_SEND NO
 
 # Create CSV files of generated grid, including partitions
 GENERATE_OUTPUT_CSV YES
