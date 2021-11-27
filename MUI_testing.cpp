@@ -179,12 +179,12 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      if( !muiInterfaces[interface].enabledSend )
-        muiInterfaces[interface].interface->announce_send_disable();
+      //if( !muiInterfaces[interface].enabledSend )
+        //muiInterfaces[interface].interface->announce_send_disable();
 
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      if( !muiInterfaces[interface].enabledRcv )
-    	  muiInterfaces[interface].interface->announce_recv_disable();
+      //if( !muiInterfaces[interface].enabledRcv )
+    	  //muiInterfaces[interface].interface->announce_recv_disable();
 
       //Commit Smart Send flag to interface so opposing barrier can release
       muiInterfaces[interface].interface->commit_ss();
