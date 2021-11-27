@@ -162,15 +162,15 @@ bool run(parameters& params) {
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      if( !muiInterfaces[interface].enabledSend )
-    	muiInterfaces[interface].interface->announce_send_disable();
-      else
+      //if( !muiInterfaces[interface].enabledSend )
+    	//muiInterfaces[interface].interface->announce_send_disable();
+      //else
         muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      if( !muiInterfaces[interface].enabledRcv )
-    	  muiInterfaces[interface].interface->announce_recv_disable();
-      else
+      //if( !muiInterfaces[interface].enabledRcv )
+    	  //muiInterfaces[interface].interface->announce_recv_disable();
+      //else
         muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Commit Smart Send flag to interface so opposing barrier can release
@@ -196,7 +196,7 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
 
       //Commit values to interface at t=0 so barrier can release
-      int peers = muiInterfaces[interface].interface->commit(static_cast<TIME>(1));
+      int peers = muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
 
       std::cout << outName << " Commit to " << peers << " peers" << std::endl;
     }
@@ -241,7 +241,7 @@ bool run(parameters& params) {
 
   //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-    muiInterfaces[interface].interface->barrier(static_cast<TIME>(1));
+    muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
   }
 
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
@@ -252,7 +252,7 @@ bool run(parameters& params) {
     numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
 
     // Forget received frame now data stored and reset MUI data frame log
-    muiInterfaces[interface].interface->forget(static_cast<TIME>(1), true);
+    muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
   }
 
   if( params.consoleOut ) {
