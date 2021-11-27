@@ -196,7 +196,7 @@ bool run(parameters& params) {
       muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
 
       //Commit values to interface at t=0 so barrier can release
-      int peers = muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+      int peers = muiInterfaces[interface].interface->commit(static_cast<TIME>(1));
 
       std::cout << outName << " Commit to " << peers << " peers" << std::endl;
     }
@@ -241,7 +241,7 @@ bool run(parameters& params) {
 
   //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-    muiInterfaces[interface].interface->barrier(static_cast<TIME>(0));
+    muiInterfaces[interface].interface->barrier(static_cast<TIME>(1));
   }
 
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
@@ -252,7 +252,7 @@ bool run(parameters& params) {
     numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
 
     // Forget received frame now data stored and reset MUI data frame log
-    muiInterfaces[interface].interface->forget(static_cast<TIME>(0), true);
+    muiInterfaces[interface].interface->forget(static_cast<TIME>(1), true);
   }
 
   if( params.consoleOut ) {
