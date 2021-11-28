@@ -180,7 +180,6 @@ int mpiRank; //-Rank of this MPI process
 int mpiCartesianRank[3] = {0, 0, 0}; //-Coordinates of this MPI process in Cartesian topology
 MPI_Datatype MPI_MB;
 char *sendBuf, *recvBuf;
-double tStart, tEnd; //-MPI wall-time storage
 std::string procName; //-String to hold processor name as returned by MPI
 std::string outName; //-String to hold processor name as returned by MPI
 pointData*** array3d_send; //-3D contiguous array of points to send via MUI
@@ -193,7 +192,7 @@ MPI_Comm world, comm_cart;
 std::vector<muiInterface> muiInterfaces;
 
 //Function declarations
-bool run(parameters&);
+double run(parameters&);
 bool initMPI(int, char**, parameters&);
 void calculateGridValues(parameters&);
 bool createGridData(parameters&);

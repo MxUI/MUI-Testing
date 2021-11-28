@@ -91,19 +91,11 @@ int main(int argc, char** argv) {
   if( params.consoleOut )
     printData(params); //Print information to console
 
-  tStart = MPI_Wtime(); //Get start timer
-
-  if( !run(params) ) //Do work through the MUI interface
-    return 0;
-
-  tEnd = MPI_Wtime(); //Get end time
-
-  // Calculate total runtime for this rank
-  double localTime = tEnd - tStart;
-  double globalTime = localTime;
+  double wallTime = run(params); //Do work through the MUI interface
+  double globalTime = wallTime;
 
   if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
-    MPI_Reduce(&localTime, &globalTime, 1, MPI_DOUBLE, MPI_SUM, 0, world);  // Perform MPI reduction for time values
+    MPI_Reduce(&wallTime, &globalTime, 1, MPI_DOUBLE, MPI_SUM, 0, world);  // Perform MPI reduction for time values
 
   // Print average time value through master rank
   if( (!params.enableMPI) || (params.enableMPI && mpiRank == 0) ) {
@@ -121,7 +113,7 @@ int main(int argc, char** argv) {
 //***********************************************************
 //* Function to perform work through MUI interface(s)
 //***********************************************************
-bool run(parameters& params) {
+double run(parameters& params) {
   std::vector<REAL> rcvValues(muiInterfaces.size(), -1);
   std::vector<INT> numValues(muiInterfaces.size(), -1);
   REAL gaussParam = std::max(std::max(params.gridSize[0], params.gridSize[1]), params.gridSize[2]);
@@ -274,6 +266,9 @@ bool run(parameters& params) {
     }
   }
 
+  // Get starting time
+  double tStart = MPI_Wtime();
+
   //Iterate for as many times and send/receive through MUI interface(s)
   for(size_t iter=0; iter < static_cast<size_t>(params.itCount); iter++) {
     //Output progress to console
@@ -404,7 +399,10 @@ bool run(parameters& params) {
     }
   }
 
-  return true;
+  double tEnd = MPI_Wtime(); //Get end time
+
+  // Return iteration runtime for this rank
+  return tEnd - tStart;
 }
 
 //****************************************************
