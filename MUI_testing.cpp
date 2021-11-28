@@ -307,10 +307,7 @@ double run(parameters& params) {
             }
           }
           //Commit values to interface
-          int commitnum = muiInterfaces[interface].interface->commit(currTime);
-
-          if( commitnum == 3200 )
-            std::cout << "rank commited to every other..." << std::endl;
+          muiInterfaces[interface].interface->commit(currTime);
         //}
       }
     }
