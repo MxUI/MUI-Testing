@@ -143,6 +143,7 @@ double run(parameters& params) {
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+      /*
       bool enabledPts = false;
       bool enabledPtsRcv = false;
 
@@ -163,6 +164,7 @@ double run(parameters& params) {
 
       muiInterfaces[interface].enabledSend = enabledPts;
       muiInterfaces[interface].enabledRcv = enabledPtsRcv;
+      */
 
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
@@ -171,27 +173,30 @@ double run(parameters& params) {
       muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
 
       //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      if( !muiInterfaces[interface].enabledSend )
-        muiInterfaces[interface].interface->announce_send_disable();
+      //if( !muiInterfaces[interface].enabledSend )
+        //muiInterfaces[interface].interface->announce_send_disable();
 
       //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      if( !muiInterfaces[interface].enabledRcv )
-    	  muiInterfaces[interface].interface->announce_recv_disable();
+      //if( !muiInterfaces[interface].enabledRcv )
+    	  //muiInterfaces[interface].interface->announce_recv_disable();
 
       //Commit Smart Send flag to interface so opposing barrier can release
-      muiInterfaces[interface].interface->commit_ss();
+      //muiInterfaces[interface].interface->commit_ss();
     }
 
+    /*
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         std::cout << outName << " Starting Smart Send barrier" << std::endl;
       }
     }
 
+
     //Smart Send barrier to ensure other side of interface has pushed smart send values
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       muiInterfaces[interface].interface->barrier_ss();
     }
+    */
 
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
@@ -296,7 +301,10 @@ double run(parameters& params) {
             }
           }
           //Commit values to interface
-          muiInterfaces[interface].interface->commit(currTime);
+          int commitnum = muiInterfaces[interface].interface->commit(currTime);
+
+          if( commitnum == 3200 )
+            std::cout << "rank commited to every other..." << std::endl;
         //}
       }
     }
