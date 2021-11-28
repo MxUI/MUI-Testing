@@ -128,11 +128,13 @@ double run(parameters& params) {
     }
 
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      // Assign value to send to interface
-      muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        // Assign value to send to interface
+        muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
 
-      // Assign number of values to send to interface
-      muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
+        // Assign number of values to send to interface
+        muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
+      }
     }
 
     if( params.consoleOut ) {
@@ -181,22 +183,20 @@ double run(parameters& params) {
     	  //muiInterfaces[interface].interface->announce_recv_disable();
 
       //Commit Smart Send flag to interface so opposing barrier can release
-      //muiInterfaces[interface].interface->commit_ss();
+      muiInterfaces[interface].interface->commit_ss();
     }
 
-    /*
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         std::cout << outName << " Starting Smart Send barrier" << std::endl;
       }
     }
 
-
     //Smart Send barrier to ensure other side of interface has pushed smart send values
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       muiInterfaces[interface].interface->barrier_ss();
     }
-    */
+
 
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
@@ -211,13 +211,15 @@ double run(parameters& params) {
       }
     }
 
-    //Barrier to ensure other side of interface has pushed timeframe so smart_send enabled across ranks and receive value sent
+    //Send values
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      // Assign value to send to interface
-      muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        // Assign value to send to interface
+        muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
 
-      // Assign number of values to send to interface
-      muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
+        // Assign number of values to send to interface
+        muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
+      }
     }
 
     if( params.consoleOut ) {
@@ -270,6 +272,10 @@ double run(parameters& params) {
       rcvParams[i].push_back(paramName.str());
     }
   }
+
+  // Introduce barrier here to ensure all ranks setup and initialised before continuing
+  if( params.enableMPI )
+    MPI_Barrier(world);
 
   // Get starting time
   double tStart = MPI_Wtime();
