@@ -140,9 +140,6 @@ double run(parameters& params) {
       }
     }
 
-    if( params.enableMPI )
-      MPI_Barrier(world);
-
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         std::cout << outName << " Initial values sent" << std::endl;
