@@ -91,6 +91,9 @@ int main(int argc, char** argv) {
   if( params.consoleOut )
     printData(params); //Print information to console
 
+  if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
+    MPI_Barrier(world);
+
   double wallTime = run(params); //Do work through the MUI interface
   double globalTime = wallTime;
 
