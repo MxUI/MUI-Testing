@@ -128,7 +128,7 @@ double run(parameters& params) {
     }
 
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 1) ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         // Assign value to send to interface
         muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
 
