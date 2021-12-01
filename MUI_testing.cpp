@@ -207,6 +207,13 @@ double run(parameters& params) {
     numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
   }
 
+  // If Smart Send not enabled then forget received time
+  if( !params.smartSend ) {
+    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+      muiInterfaces[interface].interface->forget(static_cast<INT>(0), true);
+    }
+  }
+
   if( params.consoleOut ) {
     if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
       std::cout << outName << " Initial values received, starting iterations" << std::endl;
@@ -237,7 +244,7 @@ double run(parameters& params) {
     }
   }
 
-  // Introduce barrier here to ensure all ranks setup and initialised before continuing
+  // Introduce barrier here to ensure all local ranks setup and initialised before continuing
   if( params.enableMPI )
     MPI_Barrier(world);
 
