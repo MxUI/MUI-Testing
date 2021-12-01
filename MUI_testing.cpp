@@ -148,22 +148,9 @@ double run(parameters& params) {
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
-      muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
-      muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
-
-      //Commit Smart Send flag to interface so opposing barrier can release
-      muiInterfaces[interface].interface->commit_ss();
-    }
-
-    if( params.consoleOut ) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Starting Smart Send barrier" << std::endl;
-      }
-    }
-
-    //Smart Send barrier to ensure other side of interface has pushed smart send values
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      muiInterfaces[interface].interface->barrier_ss();
+      // Announce Smart Send regions with communications blocking enabled to ensure synchronisation
+      muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion, true);
+      muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion, true);
     }
 
     if( params.consoleOut ) {
@@ -270,7 +257,6 @@ double run(parameters& params) {
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
-       // if( muiInterfaces[interface].enabledSend ) { // Only attempt if the interface is set to enabled for send
           for( size_t i=0; i<params.itot; ++i ) {
             for( size_t j=0; j<params.jtot; ++j ) {
               for( size_t k=0; k<params.ktot; ++k ) {
@@ -285,7 +271,6 @@ double run(parameters& params) {
           }
           //Commit values to interface
           muiInterfaces[interface].interface->commit(currTime);
-        //}
       }
     }
 
@@ -293,7 +278,6 @@ double run(parameters& params) {
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       //Only fetch if this interface is for receiving or for send & receive
       if( muiInterfaces[interface].sendRecv == 1 || muiInterfaces[interface].sendRecv == 2) {
-        //if( muiInterfaces[interface].enabledRcv ) { // Only attempt if the interface is set to enabled for receive
           if( !params.useInterp ) { // Using direct receive
             for( size_t vals=0; vals<numValues[interface]; vals++) {
               rcvPoints = muiInterfaces[interface].interface->fetch_points<REAL>(rcvParams[interface][vals], currTime, s2);
@@ -364,7 +348,6 @@ double run(parameters& params) {
           }
           // Forget fetched data frame from MUI interface to ensure memory free'd
           muiInterfaces[interface].interface->forget(currTime);
-        //}
       }
     }
 
