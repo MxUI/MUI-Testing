@@ -301,8 +301,6 @@ double run(parameters& params) {
               if( rcvPoints.size() != 0 ) { //Check if any points exist in the interface for this rank
                 rcvDirectValues = muiInterfaces[interface].interface->fetch_values<REAL>(rcvParams[interface][vals], currTime, s2);
 
-                std::cout << "rcvDirectValues.size(): " << rcvDirectValues.size() << std::endl;
-
                 if( rcvDirectValues.size() != 0 ) {  //If values received then check they make sense
                   if( params.checkValues ) {
                     for( size_t j=0; j<rcvDirectValues.size(); j++ ) {
