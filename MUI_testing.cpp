@@ -126,7 +126,7 @@ double run(parameters& params) {
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Initialising Smart Send and sending initial values" << std::endl;
+        std::cout << outName << " Sending initial values Initialising Smart Send and " << std::endl;
       }
     }
 
@@ -140,9 +140,18 @@ double run(parameters& params) {
       }
     }
 
+    if( params.enableMPI )
+      MPI_Barrier(world);
+
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         std::cout << outName << " Initial values sent" << std::endl;
+      }
+    }
+
+    if( params.consoleOut ) {
+      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
+        std::cout << outName << " Sending Smart Send values" << std::endl;
       }
     }
 
