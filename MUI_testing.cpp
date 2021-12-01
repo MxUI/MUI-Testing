@@ -126,7 +126,7 @@ double run(parameters& params) {
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Sending initial values Initialising Smart Send and " << std::endl;
+        std::cout << outName << " Sending initial values" << std::endl;
       }
     }
 
