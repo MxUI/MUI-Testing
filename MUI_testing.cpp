@@ -145,42 +145,11 @@ double run(parameters& params) {
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      /*
-      bool enabledPts = false;
-      bool enabledPtsRcv = false;
-
-      for( size_t i=0; i < params.itot; i++ ) {
-        for( size_t j=0; j < params.jtot; j++ ) {
-          for( size_t k=0; k < params.ktot; k++ ) {
-            if( sendEnabled[interface][i][j][k] ) {
-              enabledPts = true;
-              if ( enabledPtsRcv ) break;
-            }
-            if( rcvEnabled[interface][i][j][k] ) {
-              enabledPtsRcv = true;
-              if ( enabledPts ) break;
-            }
-          }
-        }
-      }
-
-      muiInterfaces[interface].enabledSend = enabledPts;
-      muiInterfaces[interface].enabledRcv = enabledPtsRcv;
-      */
-
       mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
                                                        {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
 
       muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
       muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion);
-
-      //Explicitly disable this rank's interface for sending if it has nothing to send (optimisation)
-      //if( !muiInterfaces[interface].enabledSend )
-        //muiInterfaces[interface].interface->announce_send_disable();
-
-      //Explicitly disable this rank's interface for receiving if it has nothing to receive (optimisation)
-      //if( !muiInterfaces[interface].enabledRcv )
-    	  //muiInterfaces[interface].interface->announce_recv_disable();
 
       //Commit Smart Send flag to interface so opposing barrier can release
       muiInterfaces[interface].interface->commit_ss();
@@ -196,7 +165,6 @@ double run(parameters& params) {
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
       muiInterfaces[interface].interface->barrier_ss();
     }
-
 
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
@@ -220,6 +188,8 @@ double run(parameters& params) {
         // Assign number of values to send to interface
         muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
       }
+
+      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
     }
 
     if( params.consoleOut ) {
@@ -233,6 +203,13 @@ double run(parameters& params) {
     if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
       std::cout << outName << " Receiving initial values" << std::endl;
     }
+  }
+
+  // If Smart Send not enabled then need time barrier here to ensure values are sent (SS uses own barrier)
+  if( !params.smartSend ) {
+	  for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
+		  muiInterfaces[interface].interface->barrier(static_cast<INT>(0));
+	  }
   }
 
   for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
