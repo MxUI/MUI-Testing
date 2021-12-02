@@ -51,9 +51,12 @@ SEND_VALUE 10
 # automatically adjust to receive the correct amount
 NUM_SEND_VALUES 3
 
-# Use Gaussian interpolation for fetch commands, otherwise values are fetched without
+# Use interpolation for fetch commands, otherwise values are fetched without
 # interpolation (i.e. using fetch_points/values)
-USE_INTERPOLATION YES
+USE_INTERPOLATION NO
+
+# Set interpolation method (only applies if USE_INTERPOLATION=YES), options=EXACT/GAUSS
+INTERPOLATION_MODE GAUSS
 
 # Enable or disable whether values received through the MUI interface should be sanity checked compared
 # to what is expected through the interface. If using spatial interpolation and a non-colocated set of grids

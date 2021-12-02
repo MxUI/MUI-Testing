@@ -106,6 +106,7 @@ struct parameters {
   INT itCount;
   REAL sendValue;
   bool useInterp;
+  INT interpMode;
   INT waitIt;
   INT dataToSend;
   bool usePeriodic;

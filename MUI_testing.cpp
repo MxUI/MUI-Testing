@@ -120,7 +120,8 @@ double run(parameters& params) {
   std::vector<REAL> rcvValues(muiInterfaces.size(), -1);
   std::vector<INT> numValues(muiInterfaces.size(), -1);
   REAL gaussParam = std::max(std::max(params.gridSize[0], params.gridSize[1]), params.gridSize[2]);
-  mui::sampler_gauss<mui::tf_config> s1( gaussParam, gaussParam / static_cast<REAL>(2) );
+  mui::sampler_gauss<mui::tf_config> s1_g( gaussParam, (gaussParam * 0.5) );
+  mui::sampler_exact<mui::tf_config> s1_e;
   mui::chrono_sampler_exact<mui::tf_config> s2;
 
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
@@ -333,7 +334,10 @@ double run(parameters& params) {
                   if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
                     for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                       //Fetch value from interface
-                      rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
+                      if( params.interpMode == 0 )
+                        rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
+                      else if ( params.interpMode == 1 )
+                        rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
 
                       if( params.checkValues ) {
                         //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
@@ -355,7 +359,10 @@ double run(parameters& params) {
                   else if( !params.smartSend ) { // Not using Smart Send so need to fetch anyway to clear MPI buffers (will return zero)
                     for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                       //Fetch value from interface
-                      muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1, s2);
+                      if( params.interpMode == 0 )
+                        muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
+                      else if( params.interpMode == 1 )
+                        muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
                     }
                   }
                 }
@@ -660,7 +667,8 @@ void printData(parameters& params) {
     std::cout << outName << " Send value: " << params.sendValue << std::endl;
     std::cout << outName << " Static points: " << (params.staticPoints? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Smart Send: " << (params.smartSend? "Enabled": "Disabled") << std::endl;
-    std::cout << outName << " Gaussian spatial interpolation: " << (params.useInterp? "Enabled": "Disabled") << std::endl;
+    std::cout << outName << " Spatial interpolation: " << (params.useInterp? "Enabled": "Disabled") << std::endl;
+    std::cout << outName << " Interpolation mode: " << (params.interpMode==0? "Exact": "Gaussian") << std::endl;
     std::cout << outName << " Value checking: " << (params.checkValues? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Artificial MPI data overhead: " << ((params.dataToSend > 0 && params.enableMPI)? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Artificial work time: " << params.waitIt << " ms" << std::endl;
@@ -761,6 +769,7 @@ bool readConfig(std::string& fileName, parameters& params) {
   inputParams.push_back("SEND_VALUE");
   inputParams.push_back("NUM_SEND_VALUES");
   inputParams.push_back("USE_INTERPOLATION");
+  inputParams.push_back("INTERPOLATION_MODE");
   inputParams.push_back("CHECK_RECEIVE_VALUE");
   inputParams.push_back("WAIT_PER_ITERATION");
   inputParams.push_back("DATA_TO_SEND_MPI");
@@ -915,6 +924,17 @@ bool readConfig(std::string& fileName, parameters& params) {
                     params.useInterp = false;
                   else {
                     std::cerr << "Problem reading USE_INTERPOLATION parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("INTERPOLATION_MODE") == 0 ) {
+                  if ( item.compare("EXACT") == 0 || item.compare("exact") == 0 || item.compare("Exact") == 0 )
+                    params.interpMode = 0;
+                  else if ( item.compare("GAUSS") == 0 || item.compare("gauss") == 0 || item.compare("Gauss") == 0 )
+                    params.interpMode = 1;
+                  else {
+                    std::cerr << "Problem reading INTERPOLATION_MODE parameter on line " << lineCount << std::endl;
                     exit( -1 );
                   }
                 }
