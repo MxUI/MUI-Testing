@@ -275,11 +275,12 @@ double run(parameters& params) {
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
         bool valSent = false;
-        for( size_t i=0; i<params.itot; ++i ) {
-          for( size_t j=0; j<params.jtot; ++j ) {
-            for( size_t k=0; k<params.ktot; ++k ) {
+        size_t i,j,k,vals;
+        for( i=0; i<params.itot; ++i ) {
+          for( j=0; j<params.jtot; ++j ) {
+            for( k=0; k<params.ktot; ++k ) {
               if( sendEnabled[interface][i][j][k] ) { //Push the value if it is enabled for this rank
-                for( size_t vals=0; vals<sendParams.size(); vals++ ) {
+                for( vals=0; vals<sendParams.size(); vals++ ) {
                   //Push value to interface
                   muiInterfaces[interface].interface->push(sendParams[vals], array3d_send[i][j][k].point, array3d_send[i][j][k].value);
                   valSent = true;
@@ -332,11 +333,12 @@ double run(parameters& params) {
           }
         }
         else { // Using spatial interpolation
-          for( size_t i=0; i<params.itot; ++i ) {
-            for( size_t j=0; j<params.jtot; ++j ) {
-              for( size_t k=0; k<params.ktot; ++k ) {
+          size_t i,j,k,vals;
+          for( i=0; i<params.itot; ++i ) {
+            for( j=0; j<params.jtot; ++j ) {
+              for( k=0; k<params.ktot; ++k ) {
                 if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
-                  for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
+                  for( vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                     //Fetch value from interface
                     if( params.interpMode == 0 )
                       rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
@@ -387,7 +389,7 @@ double run(parameters& params) {
         int err = MPI_Neighbor_alltoall(sendBuf, params.dataToSend, MPI_MB, recvBuf, params.dataToSend, MPI_MB, comm_cart);
         if(err != MPI_SUCCESS)
           std::cout << "Error: When calling MPI_Neighbor_alltoall" << std::endl;
-        }
+      }
     }
 
     //Output progress to console
@@ -1160,7 +1162,6 @@ bool processPoint(const std::string& item, POINT& value) {
 //****************************************************
 //* Function to check if point inside a box
 //****************************************************
-/*
 template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::box<T>& box) {
   bool gtltCheck = (point[0] >= box.get_min()[0] && point[0] <= box.get_max()[0]) &&
                    (point[1] >= box.get_min()[1] && point[1] <= box.get_max()[1]) &&
@@ -1172,22 +1173,10 @@ template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::bo
 
   return gtltCheck || eqCheck;
 }
-*/
-template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::box<T>& box) {
-  return (point[0] >= box.get_min()[0] && point[0] <= box.get_max()[0]) &&
-         (point[1] >= box.get_min()[1] && point[1] <= box.get_max()[1]) &&
-         (point[2] >= box.get_min()[2] && point[2] <= box.get_max()[2]);
-}
 
 //****************************************************
 //* Function to perform AABB intersection test
 //****************************************************
-template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
- return (a.get_min()[0] <= b.get_max()[0] && a.get_max()[0] >= b.get_min()[0]) &&
-        (a.get_min()[1] <= b.get_max()[1] && a.get_max()[1] >= b.get_min()[1]) &&
-        (a.get_min()[2] <= b.get_max()[2] && a.get_max()[2] >= b.get_min()[2]);
-}
-/*
 template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
   bool gtltCheck = (a.get_min()[0] < b.get_max()[0] && a.get_max()[0] > b.get_min()[0]) &&
                    (a.get_min()[1] < b.get_max()[1] && a.get_max()[1] > b.get_min()[1]) &&
@@ -1199,7 +1188,6 @@ template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::ge
 
   return gtltCheck || eqCheck;
 }
-*/
 
 //******************************************************************
 //* Function to check if two floating point values are almost equal
