@@ -133,6 +133,7 @@ struct parameters {
     itCount(0),
     sendValue(0),
     useInterp(false),
+    interpMode(-1),
     waitIt(0),
     dataToSend(0),
     usePeriodic(false),
