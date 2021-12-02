@@ -254,10 +254,6 @@ double run(parameters& params) {
     }
   }
 
-  // Introduce barrier here to ensure all local ranks setup and initialised before continuing
-  if( params.enableMPI )
-    MPI_Barrier(world);
-
   // Get starting time
   double tStart = MPI_Wtime();
 
@@ -334,16 +330,20 @@ double run(parameters& params) {
         }
         else { // Using spatial interpolation
           size_t i,j,k,vals;
+          bool fetched = false;
           for( i=0; i<params.itot; ++i ) {
             for( j=0; j<params.jtot; ++j ) {
               for( k=0; k<params.ktot; ++k ) {
                 if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
                   for( vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                     //Fetch value from interface
-                    if( params.interpMode == 0 )
-                      rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
-                    else if ( params.interpMode == 1 )
-                      rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
+                    if( !fetched ) {
+                      if( params.interpMode == 0 )
+                        rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
+                      else if ( params.interpMode == 1 )
+                        rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
+                      fetched = true;
+                    }
 
                     if( params.checkValues ) {
                       //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
