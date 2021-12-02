@@ -274,20 +274,24 @@ double run(parameters& params) {
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
-          for( size_t i=0; i<params.itot; ++i ) {
-            for( size_t j=0; j<params.jtot; ++j ) {
-              for( size_t k=0; k<params.ktot; ++k ) {
-                if( sendEnabled[interface][i][j][k] ) { //Push the value if it is enabled for this rank
-                  for( size_t vals=0; vals<sendParams.size(); vals++ ) {
-                    //Push value to interface
-                    muiInterfaces[interface].interface->push(sendParams[vals], array3d_send[i][j][k].point, array3d_send[i][j][k].value);
-                  }
+        bool valSent = false;
+        for( size_t i=0; i<params.itot; ++i ) {
+          for( size_t j=0; j<params.jtot; ++j ) {
+            for( size_t k=0; k<params.ktot; ++k ) {
+              if( sendEnabled[interface][i][j][k] ) { //Push the value if it is enabled for this rank
+                for( size_t vals=0; vals<sendParams.size(); vals++ ) {
+                  //Push value to interface
+                  muiInterfaces[interface].interface->push(sendParams[vals], array3d_send[i][j][k].point, array3d_send[i][j][k].value);
+                  valSent = true;
                 }
               }
             }
           }
+        }
+        if( valSent ) {
           //Commit values to interface
           muiInterfaces[interface].interface->commit(currTime);
+        }
       }
     }
 
@@ -348,8 +352,8 @@ double run(parameters& params) {
                             std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
                                       << " at point {" << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << "}"
                                       << std::endl;
-                          else if ( mpiRank == 0)
-                            std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
+                          else
+                            std::cout << outName << " [rank " << mpiRank << "] Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
                                       << " at point {" << array3d_send[i][j][k].point[0] << "," << array3d_send[i][j][k].point[1] << "," << array3d_send[i][j][k].point[2] << "} for MPI rank "
                                       << mpiRank << std::endl;
                         }
@@ -1156,10 +1160,11 @@ bool processPoint(const std::string& item, POINT& value) {
 //****************************************************
 //* Function to check if point inside a box
 //****************************************************
+/*
 template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::box<T>& box) {
-  bool gtltCheck = (point[0] > box.get_min()[0] && point[0] < box.get_max()[0]) &&
-                   (point[1] > box.get_min()[1] && point[1] < box.get_max()[1]) &&
-                   (point[2] > box.get_min()[2] && point[2] < box.get_max()[2]);
+  bool gtltCheck = (point[0] >= box.get_min()[0] && point[0] <= box.get_max()[0]) &&
+                   (point[1] >= box.get_min()[1] && point[1] <= box.get_max()[1]) &&
+                   (point[2] >= box.get_min()[2] && point[2] <= box.get_max()[2]);
 
   bool eqCheck = (almostEqual<REAL>(point[0], box.get_min()[0]) || almostEqual<REAL>(point[0], box.get_max()[0]) ||
                   almostEqual<REAL>(point[1], box.get_min()[1]) || almostEqual<REAL>(point[0], box.get_max()[1]) ||
@@ -1167,10 +1172,22 @@ template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::bo
 
   return gtltCheck || eqCheck;
 }
+*/
+template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::box<T>& box) {
+  return (point[0] >= box.get_min()[0] && point[0] <= box.get_max()[0]) &&
+         (point[1] >= box.get_min()[1] && point[1] <= box.get_max()[1]) &&
+         (point[2] >= box.get_min()[2] && point[2] <= box.get_max()[2]);
+}
 
 //****************************************************
 //* Function to perform AABB intersection test
 //****************************************************
+template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
+ return (a.get_min()[0] <= b.get_max()[0] && a.get_max()[0] >= b.get_min()[0]) &&
+        (a.get_min()[1] <= b.get_max()[1] && a.get_max()[1] >= b.get_min()[1]) &&
+        (a.get_min()[2] <= b.get_max()[2] && a.get_max()[2] >= b.get_min()[2]);
+}
+/*
 template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::geometry::box<T>& b) {
   bool gtltCheck = (a.get_min()[0] < b.get_max()[0] && a.get_max()[0] > b.get_min()[0]) &&
                    (a.get_min()[1] < b.get_max()[1] && a.get_max()[1] > b.get_min()[1]) &&
@@ -1182,6 +1199,7 @@ template <typename T> inline bool intersectBox(mui::geometry::box<T>& a, mui::ge
 
   return gtltCheck || eqCheck;
 }
+*/
 
 //******************************************************************
 //* Function to check if two floating point values are almost equal

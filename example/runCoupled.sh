@@ -4,10 +4,10 @@
 
 sh clean.sh
 
-bin=../build/Release/MUI_Testing
+bin=../build/RelWithDebInfo/MUI_Testing
 
-MPI_RANKS_1=20
-MPI_RANKS_2=20
+MPI_RANKS_1=2
+MPI_RANKS_2=2
 
 instanceOne="-n ${MPI_RANKS_1} ${bin} config1"
 instanceTwo="-n ${MPI_RANKS_2} ${bin} config2"
