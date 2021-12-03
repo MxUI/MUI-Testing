@@ -325,6 +325,7 @@ double run(parameters& params) {
         }
         else { // Using spatial interpolation
           size_t i,j,k,vals;
+          bool valFetched = false;
           for( i=0; i<params.itot; ++i ) {
             for( j=0; j<params.jtot; ++j ) {
               for( k=0; k<params.ktot; ++k ) {
@@ -335,6 +336,9 @@ double run(parameters& params) {
                       rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
                     else if ( params.interpMode == 1 )
                       rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
+
+                    valFetched = true;
+
                     if( params.checkValues ) {
                       //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
                       checkValue = almostEqual<REAL>(rcvValue, rcvValues[interface]);
@@ -363,6 +367,14 @@ double run(parameters& params) {
                 }
               }
             }
+          }
+          if( !valFetched ) {
+            POINT nullPoint(0,0,0);
+            //Fetch value from interface
+            if( params.interpMode == 0 )
+              muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], nullPoint, currTime, s1_e, s2);
+            else if( params.interpMode == 1 )
+              muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], nullPoint, currTime, s1_g, s2);
           }
         }
         // Forget fetched data frame from MUI interface to ensure memory free'd
