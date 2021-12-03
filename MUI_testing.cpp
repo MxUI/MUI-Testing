@@ -283,7 +283,10 @@ double run(parameters& params) {
           }
         }
         //Commit values to interface
-        muiInterfaces[interface].interface->commit(currTime);
+        int peers = muiInterfaces[interface].interface->commit(currTime);
+
+        if( peers == 0 )
+          std::cout << "zero peers to commit" << std::endl;
       }
     }
 
