@@ -155,8 +155,8 @@ double run(parameters& params) {
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0], params.rankDomainMin[1], params.rankDomainMin[2]},
-                                                       {params.rankDomainMax[0], params.rankDomainMax[1], params.rankDomainMax[2]});
+      mui::geometry::box<mui::tf_config> sendRcvRegion({params.rankDomainMin[0]+(params.rankDomainMin[0]*0.01), params.rankDomainMin[1]+(params.rankDomainMin[1]*0.01), params.rankDomainMin[2]+(params.rankDomainMin[2]*0.01)},
+                                                       {params.rankDomainMax[0]-(params.rankDomainMax[0]*0.01), params.rankDomainMax[1]-(params.rankDomainMax[1]*0.01), params.rankDomainMax[2]-(params.rankDomainMax[2]*0.01)});
 
       // Announce Smart Send regions with communications blocking enabled to ensure synchronisation
       muiInterfaces[interface].interface->announce_send_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion, true);
