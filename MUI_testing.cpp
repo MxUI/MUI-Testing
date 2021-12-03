@@ -266,7 +266,6 @@ double run(parameters& params) {
     }
 
     TIME currTime = static_cast<TIME>(iter+1);
-
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
@@ -336,7 +335,6 @@ double run(parameters& params) {
                       rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
                     else if ( params.interpMode == 1 )
                       rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
-
                     if( params.checkValues ) {
                       //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
                       checkValue = almostEqual<REAL>(rcvValue, rcvValues[interface]);
