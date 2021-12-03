@@ -285,10 +285,8 @@ double run(parameters& params) {
             }
           }
         }
-        if( valSent ) {
-          //Commit values to interface
-          muiInterfaces[interface].interface->commit(currTime);
-        }
+        //Commit values to interface
+        muiInterfaces[interface].interface->commit(currTime);
       }
     }
 
