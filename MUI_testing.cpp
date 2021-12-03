@@ -270,7 +270,6 @@ double run(parameters& params) {
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
-        bool valSent = false;
         size_t i,j,k,vals;
         for( i=0; i<params.itot; ++i ) {
           for( j=0; j<params.jtot; ++j ) {
@@ -279,7 +278,6 @@ double run(parameters& params) {
                 for( vals=0; vals<sendParams.size(); vals++ ) {
                   //Push value to interface
                   muiInterfaces[interface].interface->push(sendParams[vals], array3d_send[i][j][k].point, array3d_send[i][j][k].value);
-                  valSent = true;
                 }
               }
             }
