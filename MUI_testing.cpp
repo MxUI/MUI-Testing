@@ -1153,9 +1153,9 @@ bool processPoint(const std::string& item, POINT& value) {
 //* Function to check if point inside a box
 //****************************************************
 template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::box<T>& box) {
-  bool gtltCheck = (point[0] >= box.get_min()[0] && point[0] <= box.get_max()[0]) &&
-                   (point[1] >= box.get_min()[1] && point[1] <= box.get_max()[1]) &&
-                   (point[2] >= box.get_min()[2] && point[2] <= box.get_max()[2]);
+  bool gtltCheck = (point[0] > box.get_min()[0] && point[0] < box.get_max()[0]) &&
+                   (point[1] > box.get_min()[1] && point[1] < box.get_max()[1]) &&
+                   (point[2] > box.get_min()[2] && point[2] < box.get_max()[2]);
 
   bool eqCheck = (almostEqual<REAL>(point[0], box.get_min()[0]) || almostEqual<REAL>(point[0], box.get_max()[0]) ||
                   almostEqual<REAL>(point[1], box.get_min()[1]) || almostEqual<REAL>(point[0], box.get_max()[1]) ||
