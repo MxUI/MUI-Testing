@@ -368,13 +368,8 @@ double run(parameters& params) {
               }
             }
           }
-          if( !valFetched ) {
-            POINT nullPoint(0,0,0);
-            //Fetch value from interface
-            if( params.interpMode == 0 )
-              muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], nullPoint, currTime, s1_e, s2);
-            else if( params.interpMode == 1 )
-              muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], nullPoint, currTime, s1_g, s2);
+          if( !valFetched ) { // No values fetched so issue barrier to make sure any outstanding MPI messages are cleared
+            muiInterfaces[interface].interface->barrier(currTime);
           }
         }
         // Forget fetched data frame from MUI interface to ensure memory free'd
