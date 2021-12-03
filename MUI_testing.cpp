@@ -1158,8 +1158,8 @@ template <typename T> inline bool intersectPoint(POINT& point, mui::geometry::bo
                    (point[2] > box.get_min()[2] && point[2] < box.get_max()[2]);
 
   bool eqCheck = (almostEqual<REAL>(point[0], box.get_min()[0]) || almostEqual<REAL>(point[0], box.get_max()[0]) ||
-                  almostEqual<REAL>(point[1], box.get_min()[1]) || almostEqual<REAL>(point[0], box.get_max()[1]) ||
-                  almostEqual<REAL>(point[2], box.get_min()[2]) || almostEqual<REAL>(point[0], box.get_max()[2]));
+                  almostEqual<REAL>(point[1], box.get_min()[1]) || almostEqual<REAL>(point[1], box.get_max()[1]) ||
+                  almostEqual<REAL>(point[2], box.get_min()[2]) || almostEqual<REAL>(point[2], box.get_max()[2]));
 
   return gtltCheck || eqCheck;
 }
