@@ -330,7 +330,7 @@ double run(parameters& params) {
           for( i=0; i<params.itot; ++i ) {
             for( j=0; j<params.jtot; ++j ) {
               for( k=0; k<params.ktot; ++k ) {
-                if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
+                //if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
                   for( vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                     //Fetch value from interface
                     if( params.interpMode == 0 )
@@ -354,7 +354,8 @@ double run(parameters& params) {
                       }
                     }
                   }
-                }
+                //}
+                  /*
                 else if( !params.smartSend ) { // Not using Smart Send so need to fetch anyway to clear MPI buffers (will return zero)
                   for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                     //Fetch value from interface
@@ -364,6 +365,7 @@ double run(parameters& params) {
                       muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
                   }
                 }
+                */
               }
             }
           }
