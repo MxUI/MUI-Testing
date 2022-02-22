@@ -139,6 +139,8 @@ double run(parameters& params) {
         // Assign number of values to send to interface
         muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
       }
+
+      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
     }
 
     if( params.consoleOut ) {

@@ -10,10 +10,10 @@
 ENABLE_LOCAL_MPI YES
 
 # Physical domain size {min} {max}
-DOMAIN {0,0,0} {500,500,250}
+DOMAIN {0,0,0} {1500,750,750}
 
 # Number of cells in each direction
-NUM_GRID_CELLS {100,100,50}
+NUM_GRID_CELLS {200,100,100}
 
 # Enable console output
 CONSOLE_OUTPUT NO
@@ -53,7 +53,7 @@ NUM_SEND_VALUES 1
 
 # Use Gaussian interpolation for fetch commands, otherwise values are fetched without 
 # interpolation (i.e. using fetch_points/values)
-USE_INTERPOLATION NO
+USE_INTERPOLATION YES
 
 # Set interpolation method (only applies if USE_INTERPOLATION=YES), options=EXACT/GAUSS
 INTERPOLATION_MODE GAUSS
@@ -66,7 +66,7 @@ CHECK_RECEIVE_VALUE YES
 
 # The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
 # in ms to simulate typical processing time for application type (e.g. CFD)
-WAIT_PER_ITERATION 0
+WAIT_PER_ITERATION 100
 
 # The amount of data to send between ranks via MPI in megabytes to simulate typical MPI overhead
 # for application type (e.g. CFD), only applies if ENABLE_LOCAL_MPI=YES
