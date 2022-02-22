@@ -120,7 +120,7 @@ double run(parameters& params) {
   std::vector<REAL> rcvValues(muiInterfaces.size(), -1);
   std::vector<INT> numValues(muiInterfaces.size(), -1);
   REAL gaussParam = std::max(std::max(params.gridSize[0], params.gridSize[1]), params.gridSize[2]);
-  mui::sampler_gauss<mui::tf_config> s1_g( gaussParam, (gaussParam * 0.5) );
+  mui::sampler_gauss<mui::tf_config> s1_g( gaussParam * 1.1, (gaussParam * 0.25) );
   mui::sampler_exact<mui::tf_config> s1_e;
   mui::chrono_sampler_exact<mui::tf_config> s2;
 
