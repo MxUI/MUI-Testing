@@ -333,9 +333,9 @@ double run(parameters& params) {
                 if( rcvEnabled[interface][i][j][k] ) { //Fetch the value if it is enabled for this rank
                   for( vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                     //Fetch value from interface
-                    if( params.interpMode == 0 )
-                      rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
-                    else if ( params.interpMode == 1 )
+                    //if( params.interpMode == 0 )
+                      //rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_e, s2);
+                    //else if ( params.interpMode == 1 )
                       rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], array3d_send[i][j][k].point, currTime, s1_g, s2);
 
                     if( params.checkValues ) {
