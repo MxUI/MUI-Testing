@@ -10,10 +10,10 @@
 ENABLE_LOCAL_MPI YES
 
 # Physical domain size {min} {max}
-DOMAIN {400,0,0} {900,500,500}
+DOMAIN {0,0,0} {500,500,500}
 
 # Number of cells in each direction
-NUM_GRID_CELLS {100,100,100}
+NUM_GRID_CELLS {200,200,200}
 
 # Enable console output
 CONSOLE_OUTPUT NO

@@ -180,9 +180,9 @@ MPI_Datatype MPI_MB;
 char *sendBuf, *recvBuf;
 std::string procName; //-String to hold processor name as returned by MPI
 std::string outName; //-String to hold processor name as returned by MPI
-pointData*** array3d_send; //-3D contiguous array of points to send via MUI
-std::vector<bool***> sendEnabled; //-Vector to hold whether a point is enabled to send for an interface
-std::vector<bool***> rcvEnabled; //-Vector to hold whether a point is enabled to receive for an interface
+std::vector<pointData> sendRcvPoints; //- Points to send via MUI
+std::vector<std::vector<bool>> sendEnabled; //-Vector to hold whether a point is enabled to send for an interface
+std::vector<std::vector<bool>> rcvEnabled; //-Vector to hold whether a point is enabled to receive for an interface
 int sendInterfaces, rcvInterfaces; //-Count of the number of send and receive MUI interfaces on this rank
 
 //MUI Data
@@ -204,5 +204,3 @@ bool processPoint(const std::string&, POINT&);
 template <typename T> inline bool intersectPoint(POINT&, mui::geometry::box<T>&);
 template <typename T> inline bool intersectBox(mui::geometry::box<T>&, mui::geometry::box<T>&);
 template <typename T> inline bool almostEqual(T x, T y);
-template <class T> inline T*** create3DArr(int, int, int);
-template <class T> inline void delete3DArr(T***);
