@@ -269,13 +269,13 @@ double run(parameters& params) {
 
     TIME currTime = static_cast<TIME>(iter+1);
     size_t total_arr = params.itot * params.jtot * params.ktot;
+
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
-        size_t i,j,k,vals;
-        for( i=0; i<total_arr; ++i ) {
+        for( size_t i=0; i<total_arr; i++ ) {
 		  if( sendEnabled[interface][i] ) { //Push the value if it is enabled for this rank
-			for( vals=0; vals<sendParams.size(); vals++ ) {
+			for( size_t vals=0; vals<sendParams.size(); vals++ ) {
 			  //Push value to interface
 			  muiInterfaces[interface].interface->push(sendParams[vals], sendRcvPoints[i].point, sendRcvPoints[i].value);
 			}
@@ -323,11 +323,9 @@ double run(parameters& params) {
           }
         }
         else { // Using spatial interpolation
-          size_t i,j,k,vals;
-          size_t total_vals = params.itot  * params.jtot * params.ktot;
-          for( i=0; i<total_vals; i++ ) {
+          for( size_t i=0; i<total_arr; i++ ) {
 			if( rcvEnabled[interface][i] ) { //Fetch the value if it is enabled for this rank
-			  for( vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
+			  for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
 				//Fetch value from interface
 				if( params.interpMode == 0 )
 				  rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_e, s2);
