@@ -62,7 +62,7 @@ INTERPOLATION_MODE GAUSS
 # to what is expected through the interface. If using spatial interpolation and a non-colocated set of grids
 # then the check may fail depending on whether the interpolation produces a sane value, in this case the check
 # can be disabled
-CHECK_RECEIVE_VALUE YES
+CHECK_RECEIVE_VALUE NO
 
 # The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
 # in ms to simulate typical processing time for application type (e.g. CFD)
