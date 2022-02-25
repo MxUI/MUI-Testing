@@ -261,7 +261,6 @@ double run(parameters& params) {
 
   //Iterate for as many times and send/receive through MUI interface(s)
   for(size_t iter=0; iter < static_cast<size_t>(params.itCount); iter++) {
-	bool blocked = true;
     //Output progress to console
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) //Only perform on master rank if not in serial mode
@@ -329,12 +328,9 @@ double run(parameters& params) {
 			  for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
 				//Fetch value from interface
 				if( params.interpMode == 0 )
-				  rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_e, s2, blocked);
+				  rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_e, s2);
 				else if ( params.interpMode == 1 )
-				  rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_g, s2, blocked);
-
-				// Only need to check for block in fetch at first call for each value of currTime
-				blocked = false;
+				  rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_g, s2);
 
 				if( params.checkValues ) {
 				  //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
