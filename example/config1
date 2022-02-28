@@ -13,10 +13,10 @@ ENABLE_LOCAL_MPI YES
 DOMAIN {0,0,0} {500,500,500}
 
 # Number of cells in each direction
-NUM_GRID_CELLS {200,200,200}
+NUM_GRID_CELLS {300,300,300}
 
 # Enable console output
-CONSOLE_OUTPUT YES
+CONSOLE_OUTPUT NO
 
 # Use Smart Send, if enabled then SEND_DOMAIN and RECEIVE_DOMAIN values 
 # from the interface config file are used

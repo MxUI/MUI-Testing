@@ -124,34 +124,67 @@ double run(parameters& params) {
   mui::sampler_exact<mui::tf_config> s1_e;
   mui::chrono_sampler_exact<mui::tf_config> s2;
 
+  if (params.consoleOut) {
+    if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
+      std::cout << outName << " Sending global parameters" << std::endl;
+    }
+  }
+
+  for (size_t interface = 0; interface < muiInterfaces.size(); interface++) {
+    // This is an all-to-all send so only need to do it through MPI rank 0
+    if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
+      // Assign value to send to interface
+      muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
+
+      // Assign number of values to send to interface
+      muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
+    }
+
+    // All ranks must issue commit so timestamp at t=0 is sent to all ranks
+    muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
+  }
+
+  if (params.consoleOut) {
+    if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
+      std::cout << outName << " Initial values sent" << std::endl;
+    }
+  }
+
+  if (params.consoleOut) {
+    if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
+      std::cout << outName << " Receiving initial values" << std::endl;
+    }
+  }
+
+  // Need time barrier here to ensure other side has sent values
+  for (size_t interface = 0; interface < muiInterfaces.size(); interface++) {
+    muiInterfaces[interface].interface->barrier(static_cast<INT>(0));
+  }
+
+  // Fetch values (non-blocking)
+  for (size_t interface = 0; interface < muiInterfaces.size(); interface++) {
+    //Receive the value to be received through the interface
+    rcvValues[interface] = muiInterfaces[interface].interface->fetch<REAL>("rcvValue");
+
+    //Receive the number of values to be received through the interface
+    numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
+  }
+
+  // Forget received time and reset interface log
+  for (size_t interface = 0; interface < muiInterfaces.size(); interface++) {
+    muiInterfaces[interface].interface->forget(static_cast<INT>(0), true);
+  }
+
+  if (params.consoleOut) {
+    if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
+      std::cout << outName << " Initial values received, starting iterations" << std::endl;
+    }
+  }
+
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
     if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Sending initial values" << std::endl;
-      }
-    }
-
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        // Assign value to send to interface
-        muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
-
-        // Assign number of values to send to interface
-        muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
-      }
-
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
-    }
-
-    if( params.consoleOut ) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Initial values sent" << std::endl;
-      }
-    }
-
-    if( params.consoleOut ) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Sending Smart Send values" << std::endl;
+        std::cout << outName << " Announcing Smart Send values" << std::endl;
       }
     }
 
@@ -169,66 +202,6 @@ double run(parameters& params) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         std::cout << outName << " Smart Send set up complete" << std::endl;
       }
-    }
-  }
-  else { //Not using smart_send so only set up receive value
-    if( params.consoleOut ) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Sending initial values to all peers" << std::endl;
-      }
-    }
-
-    //Send values
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        // Assign value to send to interface
-        muiInterfaces[interface].interface->push("rcvValue", params.sendValue);
-
-        // Assign number of values to send to interface
-        muiInterfaces[interface].interface->push("numValues", params.numMUIValues);
-      }
-
-      muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
-    }
-
-    if( params.consoleOut ) {
-      if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-        std::cout << outName << " Initial values sent" << std::endl;
-      }
-    }
-  }
-
-  if( params.consoleOut ) {
-    if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-      std::cout << outName << " Receiving initial values" << std::endl;
-    }
-  }
-
-  // If Smart Send not enabled then need time barrier here to ensure values are sent (SS uses own barrier)
-  if( !params.smartSend ) {
-	  for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-		  muiInterfaces[interface].interface->barrier(static_cast<INT>(0));
-	  }
-  }
-
-  for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-    //Receive the value to be received through the interface
-    rcvValues[interface] = muiInterfaces[interface].interface->fetch<REAL>("rcvValue");
-
-    //Receive the number of values to be received through the interface
-    numValues[interface] = muiInterfaces[interface].interface->fetch<INT>("numValues");
-  }
-
-  // If Smart Send not enabled then forget received time
-  if( !params.smartSend ) {
-    for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
-      muiInterfaces[interface].interface->forget(static_cast<INT>(0), true);
-    }
-  }
-
-  if( params.consoleOut ) {
-    if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
-      std::cout << outName << " Initial values received, starting iterations" << std::endl;
     }
   }
 
