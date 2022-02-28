@@ -53,7 +53,7 @@ NUM_SEND_VALUES 1
 
 # Use interpolation for fetch commands, otherwise values are fetched without
 # interpolation (i.e. using fetch_points/values)
-USE_INTERPOLATION YES
+USE_INTERPOLATION NO
 
 # Set interpolation method (only applies if USE_INTERPOLATION=YES), options=EXACT/GAUSS
 INTERPOLATION_MODE GAUSS

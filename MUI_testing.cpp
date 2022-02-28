@@ -85,16 +85,14 @@ int main(int argc, char** argv) {
   if( !createGridData(params) ) //Create grid data
     return 0;
 
-  if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
-    MPI_Barrier(world);
-
   if( params.consoleOut )
     printData(params); //Print information to console
 
-  if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
+  // Ensure all ranks are to this point before starting run()
+  if( params.enableMPI )
     MPI_Barrier(world);
 
-  double wallTime = run(params); //Do work through the MUI interface
+  double wallTime = run(params); //Do work through the MUI interface, runtime returned in ms
   double globalTime = wallTime;
 
   if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
@@ -104,8 +102,8 @@ int main(int argc, char** argv) {
   if( (!params.enableMPI) || (params.enableMPI && mpiRank == 0) ) {
     double avgTime = globalTime / static_cast<double>(mpiWorldSize);
     // Add MPI operation reduce here to get average across ranks
-    std::cout << outName << " Average per-iteration wall clock value: " << (avgTime / static_cast<double>(params.itCount)) << " s" << std::endl;
-    std::cout << outName << " Average total wall clock value: " << avgTime << " s" << std::endl;
+    std::cout << outName << " Average per-iteration wall clock value: " << std::setprecision(10) << (avgTime / static_cast<double>(params.itCount)) << " ms" << std::endl;
+    std::cout << outName << " Average total wall clock value: " << std::setprecision(10) << avgTime << " ms" << std::endl;
   }
 
   finalise(params.enableMPI); //Clean up before exit
@@ -124,11 +122,11 @@ double run(parameters& params) {
   mui::sampler_exact<mui::tf_config> s1_e;
   mui::chrono_sampler_exact<mui::tf_config> s2;
 
-  if (params.consoleOut) {
+  //if (params.consoleOut) {
     if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
       std::cout << outName << " Sending global parameters" << std::endl;
     }
-  }
+  //}
 
   for (size_t interface = 0; interface < muiInterfaces.size(); interface++) {
     // This is an all-to-all send so only need to do it through MPI rank 0
@@ -144,17 +142,17 @@ double run(parameters& params) {
     muiInterfaces[interface].interface->commit(static_cast<TIME>(0));
   }
 
-  if (params.consoleOut) {
+  //if (params.consoleOut) {
     if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
       std::cout << outName << " Initial values sent" << std::endl;
     }
-  }
+  //}
 
-  if (params.consoleOut) {
+  //if (params.consoleOut) {
     if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
       std::cout << outName << " Receiving initial values" << std::endl;
     }
-  }
+  //}
 
   // Need time barrier here to ensure other side has sent values
   for (size_t interface = 0; interface < muiInterfaces.size(); interface++) {
@@ -175,18 +173,18 @@ double run(parameters& params) {
     muiInterfaces[interface].interface->forget(static_cast<INT>(0), true);
   }
 
-  if (params.consoleOut) {
+  //if (params.consoleOut) {
     if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
       std::cout << outName << " Initial values received, starting iterations" << std::endl;
     }
-  }
+  //}
 
   if( params.smartSend ) { //Enable MUI smart send comms reducing capability if enabled
-    if( params.consoleOut ) {
+    //if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         std::cout << outName << " Announcing Smart Send values" << std::endl;
       }
-    }
+    //}
 
     //Announce send and receive region
     for(size_t interface=0; interface < muiInterfaces.size(); interface++) {
@@ -198,11 +196,11 @@ double run(parameters& params) {
       muiInterfaces[interface].interface->announce_recv_span(static_cast<TIME>(0), static_cast<TIME>(params.itCount), sendRcvRegion, true);
     }
 
-    if( params.consoleOut ) {
+    //if( params.consoleOut ) {
       if( !params.enableMPI || (params.enableMPI && mpiRank == 0) ) {
         std::cout << outName << " Smart Send set up complete" << std::endl;
       }
-    }
+    //}
   }
 
   std::vector<POINT> rcvPoints;
@@ -230,7 +228,7 @@ double run(parameters& params) {
   }
 
   // Get starting time
-  double tStart = MPI_Wtime();
+  auto tStart = std::chrono::high_resolution_clock::now();
 
   //Iterate for as many times and send/receive through MUI interface(s)
   for(size_t iter=0; iter < static_cast<size_t>(params.itCount); iter++) {
@@ -357,10 +355,11 @@ double run(parameters& params) {
     }
   }
 
-  double tEnd = MPI_Wtime(); //Get end time
+  auto tEnd = std::chrono::high_resolution_clock::now();
+  auto finalTime = std::chrono::duration_cast<std::chrono::milliseconds>(tEnd-tStart).count();
 
   // Return iteration runtime for this rank
-  return tEnd - tStart;
+  return std::chrono::duration<double>(finalTime).count();
 }
 
 //****************************************************
