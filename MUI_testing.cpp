@@ -175,7 +175,7 @@ double run(parameters& params) {
 
   //if (params.consoleOut) {
     if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
-      std::cout << outName << " Initial values received, starting iterations" << std::endl;
+      std::cout << outName << " Initial values received" << std::endl;
     }
   //}
 
