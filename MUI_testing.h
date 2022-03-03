@@ -97,6 +97,9 @@ struct parameters {
   size_t ktot;
   POINT rankDomainMin;
   POINT rankDomainMax;
+  INT px;
+  INT py;
+  INT pz;
 
   // MUI interface parameters
   std::string domainName;
@@ -120,6 +123,9 @@ struct parameters {
     numGridCells(0,0,0),
     gridSize(0,0,0),
     gridCentre(0,0,0),
+    px(0),
+    py(0),
+    pz(0),
     totalCells(0),
     consoleOut(false),
     staticPoints(false),
@@ -173,7 +179,7 @@ struct pointData {
   {}
 };
 
-int mpiWorldSize; //-Number of MPI processes
+int mpiWorldSize = 1; //-Number of MPI processes
 int mpiRank; //-Rank of this MPI process
 int mpiCartesianRank[3] = {0, 0, 0}; //-Coordinates of this MPI process in Cartesian topology
 MPI_Datatype MPI_MB;
@@ -190,7 +196,7 @@ MPI_Comm world, comm_cart;
 std::vector<muiInterface> muiInterfaces;
 
 //Function declarations
-double run(parameters&);
+template<bool> double run(parameters&);
 bool initMPI(int, char**, parameters&);
 void calculateGridValues(parameters&);
 bool createGridData(parameters&);
