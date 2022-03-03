@@ -92,24 +92,30 @@ int main(int argc, char** argv) {
   if( params.enableMPI )
     MPI_Barrier(world);
 
-  double wallTime = 0.;
+  timing wallTime;
 
   if( params.useInterp )
     wallTime = run<true>(params); //Do work through the MUI interface, runtime returned in ms
   else
     wallTime = run<false>(params); //Do work through the MUI interface, runtime returned in ms
 
-  double globalTime = wallTime;
+  double globalTimeTotal = wallTime.totalTime;
+  double globalTimeMUI = wallTime.muiTime;
 
-  if( params.enableMPI ) //Ensure each rank has created its data structure if using MPI
-    MPI_Reduce(&wallTime, &globalTime, 1, MPI_DOUBLE, MPI_SUM, 0, world);  // Perform MPI reduction for time values
+  if( params.enableMPI ) { //Ensure each rank has created its data structure if using MPI
+    MPI_Reduce(&wallTime.totalTime, &globalTimeTotal, 1, MPI_DOUBLE, MPI_SUM, 0, world);  // Perform MPI reduction for time values
+    MPI_Reduce(&wallTime.muiTime, &globalTimeMUI, 1, MPI_DOUBLE, MPI_SUM, 0, world);  // Perform MPI reduction for time values
+  }
 
   // Print average time value through master rank
   if( (!params.enableMPI) || (params.enableMPI && mpiRank == 0) ) {
-    double avgTime = globalTime / static_cast<double>(mpiWorldSize);
-    // Add MPI operation reduce here to get average across ranks
-    std::cout << outName << " Average per-iteration wall clock value: " << std::setprecision(10) << (avgTime / static_cast<double>(params.itCount)) << " ms" << std::endl;
-    std::cout << outName << " Average total wall clock value: " << std::setprecision(10) << avgTime << " ms" << std::endl;
+    double avgTimeTotal = globalTimeTotal / static_cast<double>(mpiWorldSize);
+    double avgTimeMUI = globalTimeMUI / static_cast<double>(mpiWorldSize);
+
+    std::cout << outName << " Per-iteration wall clock value (MUI only): " << std::setprecision(10) << (avgTimeMUI / static_cast<double>(params.itCount)) << " ms" << std::endl;
+    std::cout << outName << " Total wall clock value (MUI only): " << std::setprecision(10) << avgTimeMUI << " ms" << std::endl;
+    std::cout << outName << " Per-iteration wall clock value (total): " << std::setprecision(10) << (avgTimeTotal / static_cast<double>(params.itCount)) << " ms" << std::endl;
+    std::cout << outName << " Total wall clock value (total): " << std::setprecision(10) << avgTimeTotal << " ms" << std::endl;
   }
 
   finalise( (params.enableMPI && params.dataToSend > 0) ); //Clean up before exit
@@ -121,7 +127,7 @@ int main(int argc, char** argv) {
 //* Function to perform work through MUI interface(s)
 //***********************************************************
 template<bool interpolated>
-double run(parameters& params) {
+timing run(parameters& params) {
   std::vector<REAL> rcvValues(muiInterfaces.size(), -1);
   std::vector<INT> numValues(muiInterfaces.size(), -1);
   REAL gaussParam = std::max(std::max(params.gridSize[0], params.gridSize[1]), params.gridSize[2]);
@@ -226,6 +232,8 @@ double run(parameters& params) {
     }
   }
 
+  double muiTime = 0;
+
   // Get starting time
   auto tStart = std::chrono::high_resolution_clock::now();
 
@@ -239,6 +247,8 @@ double run(parameters& params) {
 
     TIME currTime = static_cast<TIME>(iter+1);
     size_t total_arr = params.itot * params.jtot * params.ktot;
+
+    auto tStartMUI = std::chrono::high_resolution_clock::now();
 
     //Push and commit enabled values for each interface
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
@@ -335,6 +345,8 @@ double run(parameters& params) {
       }
     }
 
+    muiTime += static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - tStartMUI).count());
+
     //Sleep process for pre-defined period of time to simulate work being done by host code
     if( params.waitIt > 0 )
       std::this_thread::sleep_for(std::chrono::milliseconds(params.waitIt));
@@ -353,10 +365,12 @@ double run(parameters& params) {
     }
   }
 
-  auto finalTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - tStart).count();
+  timing timings;
+  timings.totalTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - tStart).count());
+  timings.muiTime = muiTime;
 
-  // Return iteration runtime for this rank
-  return std::chrono::duration<double>(finalTime).count();
+  // Return iteration runtimes for this rank
+  return timings;
 }
 
 //****************************************************

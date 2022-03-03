@@ -179,6 +179,16 @@ struct pointData {
   {}
 };
 
+struct timing {
+  double totalTime;
+  double muiTime;
+
+  timing() :
+    totalTime(0),
+    muiTime(0)
+  {}
+};
+
 int mpiWorldSize = 1; //-Number of MPI processes
 int mpiRank; //-Rank of this MPI process
 int mpiCartesianRank[3] = {0, 0, 0}; //-Coordinates of this MPI process in Cartesian topology
@@ -196,7 +206,7 @@ MPI_Comm world, comm_cart;
 std::vector<muiInterface> muiInterfaces;
 
 //Function declarations
-template<bool> double run(parameters&);
+template<bool> timing run(parameters&);
 bool initMPI(int, char**, parameters&);
 void calculateGridValues(parameters&);
 bool createGridData(parameters&);
