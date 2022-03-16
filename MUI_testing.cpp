@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     double avgTimeTotal = globalTimeTotal / static_cast<double>(mpiWorldSize);
     double avgTimeMUI = globalTimeMUI / static_cast<double>(mpiWorldSize);
 
-    std::cout << outName << " Per-iteration wall clock value q(MUI only): " << std::setprecision(10) << (avgTimeMUI / static_cast<double>(params.itCount)) << " ms" << std::endl;
+    std::cout << outName << " Per-iteration wall clock value (MUI only): " << std::setprecision(10) << (avgTimeMUI / static_cast<double>(params.itCount)) << " ms" << std::endl;
     std::cout << outName << " Total wall clock value (MUI only): " << std::setprecision(10) << avgTimeMUI << " ms" << std::endl;
     std::cout << outName << " Per-iteration wall clock value (total): " << std::setprecision(10) << (avgTimeTotal / static_cast<double>(params.itCount)) << " ms" << std::endl;
     std::cout << outName << " Total wall clock value (total): " << std::setprecision(10) << avgTimeTotal << " ms" << std::endl;
