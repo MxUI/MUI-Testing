@@ -94,10 +94,18 @@ int main(int argc, char** argv) {
 
   timing wallTime;
 
-  if( params.useInterp )
-    wallTime = run<true>(params); //Do work through the MUI interface, runtime returned in ms
-  else
-    wallTime = run<false>(params); //Do work through the MUI interface, runtime returned in ms
+  if( params.useInterp ) {
+    if( params.pushFetchOrder == 1 ) //Do work through the MUI interface using interpolation with push/fetch ordering, runtime returned in ms
+      wallTime = run<true, true>(params);
+    else if( params.pushFetchOrder == 2 ) //Do work through the MUI interface using interpolation with fetch/push ordering, runtime returned in ms
+      wallTime = run<true, false>(params);
+  }
+  else {
+    if( params.pushFetchOrder == 1 ) //Do work through the MUI interface without interpolation with push/fetch ordering, runtime returned in ms
+      wallTime = run<false, true>(params);
+    else if( params.pushFetchOrder == 2 ) //Do work through the MUI interface without interpolation with fetch/push ordering, runtime returned in ms
+      wallTime = run<false, false>(params);
+  }
 
   double globalTimeTotal = wallTime.totalTime;
   double globalTimeMUI = wallTime.muiTime;
@@ -126,10 +134,10 @@ int main(int argc, char** argv) {
 //***********************************************************
 //* Function to perform work through MUI interface(s)
 //***********************************************************
-template<bool interpolated>
+template<bool interpolated, bool pushFetchOrder>
 timing run(parameters& params) {
-  std::vector<REAL> rcvValues(muiInterfaces.size(), -1);
-  std::vector<INT> numValues(muiInterfaces.size(), -1);
+  std::vector<REAL> rcvValues(muiInterfaces.size(), 10);
+  std::vector<INT> numValues(muiInterfaces.size(), 1);
   REAL gaussParam = std::max(std::max(params.gridSize[0], params.gridSize[1]), params.gridSize[2]);
   mui::sampler_gauss<mui::tf_config> s1_g( gaussParam * 1.1, (gaussParam * 0.25) );
   mui::sampler_exact<mui::tf_config> s1_e;
@@ -250,19 +258,22 @@ timing run(parameters& params) {
 
     auto tStartMUI = std::chrono::high_resolution_clock::now();
 
-    //Push and commit enabled values for each interface
-    for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
-      if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
-        for( size_t i=0; i<total_arr; i++ ) {
-          if( sendEnabled[interface][i] ) { //Push the value if it is enabled for this rank
-            for( size_t vals=0; vals<sendParams.size(); vals++ ) {
-              //Push value to interface
-              muiInterfaces[interface].interface->push(sendParams[vals], sendRcvPoints[i].point, sendRcvPoints[i].value);
+    // Push values if order is push/fetch
+    if( pushFetchOrder ) {
+      //Push and commit enabled values for each interface
+      for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
+        if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
+          for( size_t i=0; i<total_arr; i++ ) {
+            if( sendEnabled[interface][i] ) { //Push the value if it is enabled for this rank
+              for( size_t vals=0; vals<sendParams.size(); vals++ ) {
+                //Push value to interface
+                muiInterfaces[interface].interface->push(sendParams[vals], sendRcvPoints[i].point, sendRcvPoints[i].value);
+              }
             }
           }
+          //Commit values to interface
+          muiInterfaces[interface].interface->commit(currTime);
         }
-        //Commit values to interface
-        muiInterfaces[interface].interface->commit(currTime);
       }
     }
 
@@ -345,7 +356,12 @@ timing run(parameters& params) {
       }
     }
 
-    muiTime += static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - tStartMUI).count());
+    if( pushFetchOrder )
+      muiTime += static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - tStartMUI).count());
+    else {
+      muiTime += static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - tStartMUI).count());
+      tStartMUI = std::chrono::high_resolution_clock::now();
+    }
 
     //Sleep process for pre-defined period of time to simulate work being done by host code
     if( params.waitIt > 0 )
@@ -356,6 +372,27 @@ timing run(parameters& params) {
       int err = MPI_Neighbor_alltoall(sendBuf, params.dataToSend, MPI_MB, recvBuf, params.dataToSend, MPI_MB, comm_cart);
       if(err != MPI_SUCCESS)
         std::cout << "Error: When calling MPI_Neighbor_alltoall" << std::endl;
+    }
+
+    // Push values if order is fetch/push
+    if( !pushFetchOrder ) {
+      //Push and commit enabled values for each interface
+      for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
+        if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
+          for( size_t i=0; i<total_arr; i++ ) {
+            if( sendEnabled[interface][i] ) { //Push the value if it is enabled for this rank
+              for( size_t vals=0; vals<sendParams.size(); vals++ ) {
+                //Push value to interface
+                muiInterfaces[interface].interface->push(sendParams[vals], sendRcvPoints[i].point, sendRcvPoints[i].value);
+              }
+            }
+          }
+          //Commit values to interface
+          muiInterfaces[interface].interface->commit(currTime);
+        }
+      }
+
+      muiTime += static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - tStartMUI).count());
     }
 
     //Output progress to console
@@ -640,6 +677,7 @@ void printData(parameters& params) {
     std::cout << outName << " Total domain cells: [" << static_cast<INT>(params.numGridCells[0]) << "," << static_cast<INT>(params.numGridCells[1]) << "," << static_cast<INT>(params.numGridCells[2]) << "]" << std::endl;
     std::cout << outName << " Total domain size: [" << params.domainMin[0] << "," << params.domainMin[1] << "," << params.domainMin[2] << "] - ["
               << params.domainMax[0] << "," << params.domainMax[1] << "," << params.domainMax[2] << "]" << std::endl;
+    std::cout << outName << " Coupling logic: " << (params.pushFetchOrder == 1? "push/fetch": "fetch/push") << std::endl;
     std::cout << outName << " Iterations: " << params.itCount << std::endl;
     std::cout << outName << " Send value: " << params.sendValue << std::endl;
     std::cout << outName << " Static points: " << (params.staticPoints? "Enabled": "Disabled") << std::endl;
@@ -738,6 +776,7 @@ bool readConfig(std::string& fileName, parameters& params) {
   inputParams.push_back("WAIT_PER_ITERATION");
   inputParams.push_back("DATA_TO_SEND_MPI");
   inputParams.push_back("USE_PERIODIC_PATTERN");
+  inputParams.push_back("PUSH_FETCH_ORDER");
 
   //Create input stream and open the file
   std::ifstream configFile;
@@ -939,6 +978,20 @@ bool readConfig(std::string& fileName, parameters& params) {
                     params.usePeriodic = false;
                   else {
                     std::cerr << "Problem reading USE_PERIODIC_PATTERN parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("PUSH_FETCH_ORDER") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.pushFetchOrder) ) {
+                    std::cerr << "Problem reading PUSH_FETCH_ORDER parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+
+                  if( params.pushFetchOrder < 1 || params.pushFetchOrder > 2 ) {
+                    std::cerr << "PUSH_FETCH_ORDER parameter must equal 1 or 2 on line " << lineCount << std::endl;
                     exit( -1 );
                   }
                 }

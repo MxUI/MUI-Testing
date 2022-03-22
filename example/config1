@@ -13,10 +13,10 @@ ENABLE_LOCAL_MPI YES
 DOMAIN {0,0,0} {500,500,500}
 
 # Number of cells in each direction
-NUM_GRID_CELLS {200,200,200}
+NUM_GRID_CELLS {100,100,100}
 
 # Enable console output
-CONSOLE_OUTPUT NO
+CONSOLE_OUTPUT YES
 
 # Use Smart Send, if enabled then SEND_DOMAIN and RECEIVE_DOMAIN values 
 # from the interface config file are used
@@ -38,6 +38,10 @@ INTERFACE_FILE_PATH config1_mui_interfaces
 ####################################
 # Artificial Simulation Parameters #
 ####################################
+
+# Order of push/fetch operations
+# 1 = push then fetch; 2 = fetch then push
+PUSH_FETCH_ORDER 1
 
 # Number of iterations
 ITERATION_COUNT 3
@@ -66,7 +70,7 @@ CHECK_RECEIVE_VALUE NO
 
 # The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
 # in ms to simulate typical processing time for application type (e.g. CFD)
-WAIT_PER_ITERATION 0
+WAIT_PER_ITERATION 500
 
 # The amount of data to send between ranks via MPI in megabytes to simulate typical MPI overhead
 # for application type (e.g. CFD), only applies if ENABLE_LOCAL_MPI=YES

@@ -112,6 +112,7 @@ struct parameters {
   INT interpMode;
   INT waitIt;
   INT dataToSend;
+  INT pushFetchOrder;
   bool usePeriodic;
   INT numMUIValues;
   bool checkValues;
@@ -142,6 +143,7 @@ struct parameters {
     interpMode(-1),
     waitIt(0),
     dataToSend(0),
+    pushFetchOrder(-1),
     usePeriodic(false),
     numMUIValues(0),
     checkValues(false)
@@ -206,7 +208,7 @@ MPI_Comm world, comm_cart;
 std::vector<muiInterface> muiInterfaces;
 
 //Function declarations
-template<bool> timing run(parameters&);
+template<bool, bool> timing run(parameters&);
 bool initMPI(int, char**, parameters&);
 void calculateGridValues(parameters&);
 bool createGridData(parameters&);
