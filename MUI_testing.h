@@ -115,7 +115,6 @@ struct parameters {
   INT pushFetchOrder;
   bool usePeriodic;
   INT numMUIValues;
-  bool checkValues;
 
   parameters() :
     enableMPI(false),

@@ -51,10 +51,6 @@
 #ifndef MUI_TF_CONFIG_H
 #define MUI_TF_CONFIG_H
 
-#include "util.h"
-#include "dim.h"
-#include "exception.h"
-
 namespace mui {
 struct tf_config {
   using EXCEPTION = exception_segv;       //- Exception handling type
@@ -67,7 +63,8 @@ struct tf_config {
   using REAL = double;                    //- REAL data type
   using INT  = int;                       //- INT data type
 
-  using time_type  = INT;                 //- time_type INT for iteration coupling, REAL for exact coupling
+  using time_type = INT;                  //- time_type data type
+  using iterator_type = INT;              //- iterator_type data type
   using point_type = point<REAL,D>;       //- "point" data type and dimensionality
   using data_types = type_list<int32_t,
                                int64_t,

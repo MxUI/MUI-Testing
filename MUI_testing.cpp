@@ -288,27 +288,11 @@ timing run(parameters& params) {
             if( rcvPoints.size() != 0 ) { //Check if any points exist in the interface for this rank
               rcvDirectValues = muiInterfaces[interface].interface->fetch_values<REAL>(rcvParams[interface][vals], currTime, s2);
 
-              if( rcvDirectValues.size() != 0 ) {  //If values received then check they make sense
-                if( params.checkValues ) {
-                  for( size_t j=0; j<rcvDirectValues.size(); j++ ) {
-                    if( rcvDirectValues[j] != rcvValues[interface] ) {
-                      if( !params.enableMPI )
-                        std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                  << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "}" << std::endl;
-                      else
-                        std::cout << outName << " Error: Received value (" << rcvValues[interface] << ") not as expected for " << muiInterfaces[interface].interfaceName
-                                  << " at point {" << rcvPoints[j][0] << "," << rcvPoints[j][1] << "," << rcvPoints[j][2] << "} for MPI rank " << mpiRank << std::endl;
-                    }
-                  }
-                }
-              }
-              else { //No values were received, report error
-                if( params.consoleOut ) {
+              if( rcvDirectValues.size() == 0 && params.consoleOut ) {  //No values were received, report error
                   if( !params.enableMPI )
                     std::cout << outName << " Error: No values found in interface but points exist " << muiInterfaces[interface].interfaceName << std::endl;
                   else
                     std::cout << outName << " Error: No values found in interface but points exist " << muiInterfaces[interface].interfaceName << " for MPI rank " << mpiRank << std::endl;
-                }
               }
             }
           }
@@ -322,22 +306,6 @@ timing run(parameters& params) {
                   rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_e, s2);
                 else if ( params.interpMode == 1 )
                   rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_g, s2);
-
-                if( params.checkValues ) {
-                  //Check value received make sense (using Gaussian interpolation so can't assume floating point values are exactly the same)
-                  checkValue = almostEqual<REAL>(rcvValue, rcvValues[interface]);
-
-                  if( !checkValue ) {
-                    if( !params.enableMPI )
-                      std::cout << outName << " Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
-                          << " at point {" << sendRcvPoints[i].point[0] << "," << sendRcvPoints[i].point[1] << "," << sendRcvPoints[i].point[2] << "}"
-                          << std::endl;
-                    else
-                      std::cout << outName << " [rank " << mpiRank << "] Error: Received value (" << rcvValue << ") not as expected for " << muiInterfaces[interface].interfaceName
-                          << " at point {" << sendRcvPoints[i].point[0] << "," << sendRcvPoints[i].point[1] << "," << sendRcvPoints[i].point[2] << "} for MPI rank "
-                          << mpiRank << std::endl;
-                  }
-                }
               }
             }
             else if( !params.smartSend ) { // Not using Smart Send so need to fetch anyway to clear MPI buffers (will return zero)
@@ -684,7 +652,6 @@ void printData(parameters& params) {
     std::cout << outName << " Smart Send: " << (params.smartSend? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Spatial interpolation: " << (params.useInterp? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Interpolation mode: " << (params.interpMode==0? "Exact": "Gaussian") << std::endl;
-    std::cout << outName << " Value checking: " << (params.checkValues? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Artificial MPI data overhead: " << ((params.dataToSend > 0 && params.enableMPI)? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Artificial work time: " << params.waitIt << " ms" << std::endl;
   }
@@ -938,17 +905,6 @@ bool readConfig(std::string& fileName, parameters& params) {
                     params.interpMode = 1;
                   else {
                     std::cerr << "Problem reading INTERPOLATION_MODE parameter on line " << lineCount << std::endl;
-                    exit( -1 );
-                  }
-                }
-
-                if( paramName.compare("CHECK_RECEIVE_VALUE") == 0 ) {
-                  if ( item.compare("YES") == 0 || item.compare("yes") == 0 )
-                    params.checkValues = true;
-                  else if ( item.compare("NO") == 0 || item.compare("no") == 0 )
-                    params.checkValues = false;
-                  else {
-                    std::cerr << "Problem reading CHECK_RECEIVE_VALUE parameter on line " << lineCount << std::endl;
                     exit( -1 );
                   }
                 }
