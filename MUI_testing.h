@@ -110,6 +110,19 @@ struct parameters {
   REAL sendValue;
   bool useInterp;
   INT interpMode;
+  REAL gauss_Radius;
+  REAL gauss_Height;
+  REAL rbf_Radius;
+  INT rbf_BasisFunc;
+  bool rbf_Conservative;
+  bool rbf_Smooth;
+  bool rbf_Write;
+  std::string rbf_dirName;
+  REAL rbf_Cutoff;
+  REAL rbf_CgSolveTol;
+  INT rbf_CgSolveMaxIt;
+  INT rbf_PoUSize;
+  INT rbf_CgPreCon;
   INT waitIt;
   INT dataToSend;
   INT pushFetchOrder;
@@ -140,12 +153,24 @@ struct parameters {
     sendValue(0),
     useInterp(false),
     interpMode(-1),
+    gauss_Radius(1),
+    gauss_Height(1),
+    rbf_Radius(1),
+    rbf_BasisFunc(0),
+    rbf_Conservative(true),
+    rbf_Smooth(false),
+    rbf_Write(true),
+    rbf_dirName("MUI_Testing"),
+    rbf_Cutoff(1e-9),
+    rbf_CgSolveTol(1e-6),
+    rbf_CgSolveMaxIt(0),
+    rbf_PoUSize(50),
+    rbf_CgPreCon(1),
     waitIt(0),
     dataToSend(0),
     pushFetchOrder(-1),
     usePeriodic(false),
-    numMUIValues(0),
-    checkValues(false)
+    numMUIValues(0)
   {}
 };
 

@@ -63,32 +63,32 @@ USE_INTERPOLATION NO
 INTERPOLATION_MODE GAUSS
 
 # Define Gaussian interpolation parameters (only applies if INTERPOLATION_MODE=GAUSS)
-RADIUS 5.5 
-HEIGHT 1.25
+GAUSS_RADIUS 5.5 
+GAUSS_HEIGHT 1.25
 
 # Define RBF interpolation parameters (only applies if INTERPOLATION_MODE=RBF)
 # The search radius used to construct each RBF
-RADIUS 1
+RBF_RADIUS 1
 # Basis function selection (Gaussian=0; Wendland C0=1; Wendland C2=2; Wendland C4=3; Wendland C6=4)
-BASIS_FUNC 0
+RBF_BASIS_FUNC 0
 # Select between consistent(=0) or conservative(=1) operation
-MODE 1
+RBF_MODE 1
 # Enable smoothing function
-SMOOTHING YES
+RBF_SMOOTHING YES
 # Write generated RBF matrices to disk
-WRITE_MATRICES YES
+RBF_WRITE_MATRICES YES
 # File address for matrix output (only applies if WRITE_MATRICES=YES; default=running directory)
-FILE_ADDRESS
+RBF_FILE_ADDRESS
 # Cut-off of for Gaussian basis function (only applies if BASIS_FUNC=0; default=1e-9)
-GAUSS_CUT_OFF 1e-9
+RBF_GAUSS_CUT_OFF 1e-9
 # Conjugate Gradient solver convergence tolerance (default=1e-6)
-CG_SOLVE_TOL 1e-6
+RBF_CG_SOLVE_TOL 1e-6
 # Conjugate Gradient solver maximum iterations (0 means the solver decides)
-CG_MAX_ITER 0
+RBF_CG_MAX_ITER 0
 # RBF partition of unity size (0=partitioned approach disabled; default=50)
-POU_SIZE 50
+RBF_POU_SIZE 50
 # Preconditioner for Conjugate Gradient solver (No preconditioner=0; diagonal=1; default=1)
-CG_PRECON 1
+RBF_CG_PRECON 1
 
 # The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
 # in ms to simulate typical processing time for application type (e.g. CFD)

@@ -138,10 +138,6 @@ template<bool interpolated, bool pushFetchOrder>
 timing run(parameters& params) {
   std::vector<REAL> rcvValues(muiInterfaces.size(), 10);
   std::vector<INT> numValues(muiInterfaces.size(), 1);
-  REAL gaussParam = std::max(std::max(params.gridSize[0], params.gridSize[1]), params.gridSize[2]);
-  mui::sampler_gauss<mui::tf_config> s1_g( gaussParam * 1.1, (gaussParam * 0.25) );
-  mui::sampler_exact<mui::tf_config> s1_e;
-  mui::chrono_sampler_exact<mui::tf_config> s2;
 
   if (!params.enableMPI || (params.enableMPI && mpiRank == 0)) {
     std::cout << outName << " Sending global parameters" << std::endl;
@@ -240,6 +236,58 @@ timing run(parameters& params) {
     }
   }
 
+  size_t total_arr = params.itot * params.jtot * params.ktot;
+
+  // Individual MUI interfaces can have different set ups, so need one RBF filter per interface if enabled
+  std::vector<mui::sampler_rbf<mui::tf_config>*> s1_rbf;
+
+  // If RBF interpolation enabled then gather local (sending) point set used to generate basis matrix
+  if( params.interpMode == 2 ) {
+    for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
+      if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
+        // Gather active sending points for this rank into local std::vector
+        std::vector<POINT> rbfPoints;
+        for( size_t i=0; i<total_arr; i++ ) {
+          if( sendEnabled[interface][i] ) {
+            rbfPoints.push_back(sendRcvPoints[i].point);
+          }
+        }
+
+        if ( rbfPoints.size() != 0 ) {
+          // Define unique output directory for RBF matrix files
+          std::string outputDir(params.rbf_dirName+muiInterfaces[interface].interfaceName);
+
+          // Create RBF sampler instance
+          if( params.enableMPI ) {
+            mui::sampler_rbf<mui::tf_config>* s1_rbf_local = new mui::sampler_rbf<mui::tf_config>(params.rbf_Radius, rbfPoints, params.rbf_BasisFunc,
+                                                                   params.rbf_Conservative, params.rbf_Smooth, params.rbf_Write, outputDir,
+                                                                   params.rbf_Cutoff, params.rbf_CgSolveTol, params.rbf_CgSolveMaxIt,
+                                                                   params.rbf_PoUSize, params.rbf_CgPreCon);
+
+            s1_rbf.push_back(s1_rbf_local);
+          }
+          else { // MPI disabled so no need to provide RBF filter with MPI communicator
+            mui::sampler_rbf<mui::tf_config>* s1_rbf_local = new mui::sampler_rbf<mui::tf_config>(params.rbf_Radius, rbfPoints, params.rbf_BasisFunc,
+                                                                   params.rbf_Conservative, params.rbf_Smooth, params.rbf_Write, outputDir,
+                                                                   params.rbf_Cutoff, params.rbf_CgSolveTol, params.rbf_CgSolveMaxIt,
+                                                                   params.rbf_PoUSize, params.rbf_CgPreCon, world);
+
+            s1_rbf.push_back(s1_rbf_local);
+          }
+        }
+        else // No points were found to send for this rank so add null pointer to ensure std::vector size correct
+          s1_rbf.push_back(NULL);
+      }
+      else // Interface not enabled to send so add null pointer to ensure std::vector size correct
+        s1_rbf.push_back(NULL);
+    }
+  }
+
+  // Create single instance spatial and temporal samplers
+  mui::sampler_gauss<mui::tf_config> s1_g(params.gauss_Radius, params.gauss_Height);
+  mui::sampler_exact<mui::tf_config> s1_e;
+  mui::temporal_sampler_exact<mui::tf_config> s2;
+
   double muiTime = 0;
 
   // Get starting time
@@ -254,8 +302,6 @@ timing run(parameters& params) {
     }
 
     TIME currTime = static_cast<TIME>(iter+1);
-    size_t total_arr = params.itot * params.jtot * params.ktot;
-
     auto tStartMUI = std::chrono::high_resolution_clock::now();
 
     // Push values if order is push/fetch
@@ -302,10 +348,12 @@ timing run(parameters& params) {
             if( rcvEnabled[interface][i] ) { //Fetch the value if it is enabled for this rank
               for( size_t vals=0; vals<numValues[interface]; vals++) { //Iterate through as many values to receive per point
                 //Fetch value from interface
-                if( params.interpMode == 0 )
+                if( params.interpMode == 0 ) // Exact
                   rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_e, s2);
-                else if ( params.interpMode == 1 )
+                else if ( params.interpMode == 1 ) // Gaussian
                   rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_g, s2);
+                else if ( params.interpMode == 2 ) // RBF
+                  rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, *s1_rbf[interface], s2);
               }
             }
             else if( !params.smartSend ) { // Not using Smart Send so need to fetch anyway to clear MPI buffers (will return zero)
@@ -315,6 +363,8 @@ timing run(parameters& params) {
                   muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_e, s2);
                 else if( params.interpMode == 1 )
                   muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_g, s2);
+                else if ( params.interpMode == 2 ) // RBF
+                  muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, *s1_rbf[interface], s2);
               }
             }
           }
@@ -739,6 +789,19 @@ bool readConfig(std::string& fileName, parameters& params) {
   inputParams.push_back("NUM_SEND_VALUES");
   inputParams.push_back("USE_INTERPOLATION");
   inputParams.push_back("INTERPOLATION_MODE");
+  inputParams.push_back("GAUSS_RADIUS");
+  inputParams.push_back("GAUSS_HEIGHT");
+  inputParams.push_back("RBF_RADIUS");
+  inputParams.push_back("RBF_BASIS_FUNC");
+  inputParams.push_back("RBF_MODE");
+  inputParams.push_back("RBF_SMOOTHING");
+  inputParams.push_back("RBF_WRITE_MATRICES");
+  inputParams.push_back("RBF_DIR_NAME");
+  inputParams.push_back("RBF_GAUSS_CUT_OFF");
+  inputParams.push_back("RBF_CG_SOLVE_TOL");
+  inputParams.push_back("RBF_CG_MAX_ITER");
+  inputParams.push_back("RBF_POU_SIZE");
+  inputParams.push_back("RBF_CG_PRECON");
   inputParams.push_back("CHECK_RECEIVE_VALUE");
   inputParams.push_back("WAIT_PER_ITERATION");
   inputParams.push_back("DATA_TO_SEND_MPI");
@@ -903,8 +966,152 @@ bool readConfig(std::string& fileName, parameters& params) {
                     params.interpMode = 0;
                   else if ( item.compare("GAUSS") == 0 || item.compare("gauss") == 0 || item.compare("Gauss") == 0 )
                     params.interpMode = 1;
+                  else if ( item.compare("RBF") == 0 || item.compare("rbf") == 0 )
+                    params.interpMode = 2;
                   else {
                     std::cerr << "Problem reading INTERPOLATION_MODE parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("GAUSS_RADIUS") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.gauss_Radius) ) {
+                    std::cerr << "Problem reading GAUSS_RADIUS parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("GAUSS_HEIGHT") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.gauss_Height) ) {
+                    std::cerr << "Problem reading GAUSS_HEIGHT parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_RADIUS") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.rbf_Radius) ) {
+                    std::cerr << "Problem reading RBF_RADIUS parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_BASIS_FUNC") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.rbf_BasisFunc) ) {
+                    std::cerr << "Problem reading RBF_BASIS_FUNC parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+
+                  if(params.rbf_BasisFunc < 0 || params.rbf_BasisFunc > 4) {
+                    std::cerr << "Please ensure the value of RBF_BASIS_FUNC parameter on line " << lineCount
+                        << "is valid (Gaussian=0; Wendland C0=1; Wendland C2=2; Wendland C4=3; Wendland C6=4)" << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_MODE") == 0 ) {
+                  if ( item.compare("0") == 0 )
+                    params.rbf_Conservative = false;
+                  else if ( item.compare("1") == 0 )
+                    params.rbf_Conservative = true;
+                  else {
+                    std::cerr << "Problem reading RBF_MODE parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_SMOOTHING") == 0 ) {
+                  if ( item.compare("YES") == 0 || item.compare("yes") == 0 )
+                    params.rbf_Smooth = true;
+                  else if ( item.compare("NO") == 0 || item.compare("no") == 0 )
+                    params.rbf_Smooth = false;
+                  else {
+                    std::cerr << "Problem reading RBF_SMOOTHING parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_WRITE_MATRICES") == 0 ) {
+                  if ( item.compare("YES") == 0 || item.compare("yes") == 0 )
+                    params.rbf_Write = true;
+                  else if ( item.compare("NO") == 0 || item.compare("no") == 0 )
+                    params.rbf_Write = false;
+                  else {
+                    std::cerr << "Problem reading RBF_WRITE_MATRICES parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_DIR_NAME") == 0 ) {
+                  params.rbf_dirName = item;
+                }
+
+                if( paramName.compare("RBF_GAUSS_CUT_OFF") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.rbf_Cutoff) ) {
+                    std::cerr << "Problem reading RBF_GAUSS_CUT_OFF parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_CG_SOLVE_TOL") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.rbf_CgSolveTol) ) {
+                    std::cerr << "Problem reading RBF_CG_SOLVE_TOL parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_CG_MAX_ITER") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.rbf_CgSolveMaxIt) ) {
+                    std::cerr << "Problem reading RBF_CG_MAX_ITER parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+
+                  if(params.rbf_CgSolveMaxIt < 0) {
+                    std::cerr << "Please ensure the value of RBF_CG_MAX_ITER parameter on line " << lineCount
+                        << "is valid (must be positive)" << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_POU_SIZE") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.rbf_PoUSize) ) {
+                    std::cerr << "Problem reading RBF_POU_SIZE parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+
+                  if(params.rbf_PoUSize < 0) {
+                    std::cerr << "Please ensure the value of RBF_POU_SIZE parameter on line " << lineCount
+                        << "is valid (must be positive)" << std::endl;
+                    exit( -1 );
+                  }
+                }
+
+                if( paramName.compare("RBF_CG_PRECON") == 0 ) {
+                  std::stringstream tmpItem(item); // Create stringstream of string
+
+                  if( !(tmpItem >> params.rbf_CgPreCon) ) {
+                    std::cerr << "Problem reading RBF_CG_PRECON parameter on line " << lineCount << std::endl;
+                    exit( -1 );
+                  }
+
+                  if(params.rbf_CgPreCon < 0 || params.rbf_CgPreCon > 1) {
+                    std::cerr << "Please ensure the value of RBF_POU_SIZE parameter on line " << lineCount
+                        << "is valid (None=0; diagonal=1)" << std::endl;
                     exit( -1 );
                   }
                 }
