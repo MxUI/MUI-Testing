@@ -58,7 +58,7 @@ struct tf_config {
   static const bool DEBUG = true;         //- Enable extra debugging output
   static const int D = 3;                 //- Dimensionality of the domain
   static const bool FIXEDPOINTS = false;  //- Enable optimisations for problems with fixed point structure
-  static const bool QUIET = true;         //- If the library is quiet then it will only issue critical warning messages
+  static const bool QUIET = false;         //- If the library is quiet then it will only issue critical warning messages
 
   using REAL = double;                    //- REAL data type
   using INT  = int;                       //- INT data type

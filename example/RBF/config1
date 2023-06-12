@@ -1,0 +1,104 @@
+###################################
+## MUI Tesing Configuration file ##
+###################################
+
+######################
+# General Parameters #
+######################
+
+# Enable MPI communications locally within test framework
+ENABLE_LOCAL_MPI YES
+
+# Physical domain size {min} {max}
+DOMAIN {0,0,0} {500,500,500}
+
+# Number of cells in each direction
+NUM_GRID_CELLS {100,100,100}
+
+# Enable console output
+CONSOLE_OUTPUT YES
+
+# Use Smart Send, if enabled then SEND_DOMAIN and RECEIVE_DOMAIN values 
+# from the interface config file are used
+USE_SMART_SEND YES
+
+# Create CSV files of generated grid, including partitions
+GENERATE_OUTPUT_CSV YES
+
+############################
+# MUI Interface Definition #
+############################
+
+# The domain name to use when creating MUI interfaces
+DOMAIN_NAME domain1
+
+# The MUI definition file name
+INTERFACE_FILE_PATH config1_mui_interfaces
+
+####################################
+# Artificial Simulation Parameters #
+####################################
+
+# Order of push/fetch operations
+# 1 = push then fetch; 2 = fetch then push
+PUSH_FETCH_ORDER 1
+
+# Number of iterations
+ITERATION_COUNT 3
+
+# The value of type "REAL" to be sent using MUI interface per grid point
+# (see MUI_config.h for meaning of REAL type)
+SEND_VALUE 10
+
+# Specify the number of values of type "REAL" to send via MUI per grid point, per iteration
+# i.e. for 3D CFD this might be 7 (velocity, acceleration, pressure), corresponding side will
+# automatically adjust to receive the correct amount
+NUM_SEND_VALUES 3
+
+# Use interpolation for fetch commands, otherwise values are fetched without
+# interpolation (i.e. using fetch_points/values)
+USE_INTERPOLATION YES
+
+# Set interpolation method (only applies if USE_INTERPOLATION=YES), options=EXACT/GAUSS/RBF
+INTERPOLATION_MODE RBF
+
+# Define Gaussian interpolation parameters (only applies if INTERPOLATION_MODE=GAUSS)
+GAUSS_RADIUS 5.5 
+GAUSS_HEIGHT 1.25
+
+# Define RBF interpolation parameters (only applies if INTERPOLATION_MODE=RBF)
+# The search radius used to construct each RBF
+RBF_RADIUS 1
+# Basis function selection (Gaussian=0; Wendland C0=1; Wendland C2=2; Wendland C4=3; Wendland C6=4)
+RBF_BASIS_FUNC 0
+# Select between consistent(=0) or conservative(=1) operation
+RBF_MODE 1
+# Enable smoothing function
+RBF_SMOOTHING YES
+# Write generated RBF matrices to disk
+RBF_WRITE_MATRICES YES
+# Directory name for matrix output (only applies if WRITE_MATRICES=YES; default=running directory)
+RBF_DIR_NAME MUI_Testing_RBF
+# Cut-off of for Gaussian basis function (only applies if BASIS_FUNC=0; default=1e-9)
+RBF_GAUSS_CUT_OFF 1e-9
+# Conjugate Gradient solver convergence tolerance (default=1e-6)
+RBF_CG_SOLVE_TOL 1e-6
+# Conjugate Gradient solver maximum iterations (0 means the solver decides)
+RBF_CG_MAX_ITER 0
+# RBF partition of unity size (0=partitioned approach disabled; default=50)
+RBF_POU_SIZE 50
+# Preconditioner for Conjugate Gradient solver (No preconditioner=0; diagonal=1; default=1)
+RBF_CG_PRECON 1
+
+# The amount of time to wait at the bottom of each iteration (ITERATION_COUNT) 
+# in ms to simulate typical processing time for application type (e.g. CFD)
+WAIT_PER_ITERATION 500
+
+# The amount of data to send between ranks via MPI in megabytes to simulate typical MPI overhead
+# for application type (e.g. CFD), only applies if ENABLE_LOCAL_MPI=YES
+DATA_TO_SEND_MPI 0
+
+# Assume a simulation type involving periodic boundaries, i.e. all MPI ranks communicate
+# with their neighbours and those at the start/end of the domain communicate back with the start/end,
+# only applies if ENABLE_LOCAL_MPI=YES
+USE_PERIODIC_PATTERN YES

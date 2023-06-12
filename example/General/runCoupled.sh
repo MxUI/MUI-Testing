@@ -4,7 +4,7 @@
 
 ./clean.sh
 
-bin=../build/MUI_Testing
+bin=../../build/MUI_Testing
 
 MPI_RANKS_1=2
 MPI_RANKS_2=2

@@ -275,8 +275,10 @@ timing run(parameters& params) {
             s1_rbf.push_back(s1_rbf_local);
           }
         }
-        else // No points were found to send for this rank so add null pointer to ensure std::vector size correct
+        else { // No points were found to send for this rank so add null pointer to ensure std::vector size correct
           s1_rbf.push_back(NULL);
+          std::cout << outName << " WARNING: no points found whilst generating RBF filter" << std::endl;
+        }
       }
       else // Interface not enabled to send so add null pointer to ensure std::vector size correct
         s1_rbf.push_back(NULL);
@@ -352,7 +354,7 @@ timing run(parameters& params) {
                   rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_e, s2);
                 else if ( params.interpMode == 1 ) // Gaussian
                   rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, s1_g, s2);
-                else if ( params.interpMode == 2 ) // RBF
+                else if ( params.interpMode == 2 && s1_rbf[interface] != NULL ) // RBF
                   rcvValue = muiInterfaces[interface].interface->fetch(rcvParams[interface][vals], sendRcvPoints[i].point, currTime, *s1_rbf[interface], s2);
               }
             }
@@ -701,7 +703,7 @@ void printData(parameters& params) {
     std::cout << outName << " Static points: " << (params.staticPoints? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Smart Send: " << (params.smartSend? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Spatial interpolation: " << (params.useInterp? "Enabled": "Disabled") << std::endl;
-    std::cout << outName << " Interpolation mode: " << (params.interpMode==0? "Exact": "Gaussian") << std::endl;
+    std::cout << outName << " Interpolation mode: " << (params.interpMode==0? "Exact": (params.interpMode==1? "Gaussian": "RBF")) << std::endl;
     std::cout << outName << " Artificial MPI data overhead: " << ((params.dataToSend > 0 && params.enableMPI)? "Enabled": "Disabled") << std::endl;
     std::cout << outName << " Artificial work time: " << params.waitIt << " ms" << std::endl;
   }
