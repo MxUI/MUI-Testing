@@ -10,9 +10,9 @@
 ENABLE_LOCAL_MPI YES
 
 # Physical domain size {min} {max}
-DOMAIN {500,0,0} {1000,500,500}
+DOMAIN {495,0,0} {995,500,500}
 
-# Number of cells in each direction
+# Number of cells in each direction (final grid cell points are at the cell centre)
 NUM_GRID_CELLS {100,100,100}
 
 # Enable console output
@@ -78,7 +78,7 @@ RBF_SMOOTHING YES
 # Write generated RBF matrices to disk
 RBF_WRITE_MATRICES YES
 # File address for matrix output (only applies if WRITE_MATRICES=YES; default=running directory)
-RBF_FILE_ADDRESS
+RBF_DIR_NAME MUI-Testing_2
 # Cut-off of for Gaussian basis function (only applies if BASIS_FUNC=0; default=1e-9)
 RBF_GAUSS_CUT_OFF 1e-9
 # Conjugate Gradient solver convergence tolerance (default=1e-6)

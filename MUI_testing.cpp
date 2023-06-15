@@ -242,8 +242,12 @@ timing run(parameters& params) {
   std::vector<mui::sampler_rbf<mui::tf_config>*> s1_rbf;
 
   // If RBF interpolation enabled then gather local (sending) point set used to generate basis matrix
-  if( params.interpMode == 2 ) {
+  if( params.interpMode == 2 && interpolated ) {
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
+      // Define unique output directory for RBF matrix files and create directory
+      std::string outputDir(params.rbf_dirName+"_"+muiInterfaces[interface].interfaceName+"_"+std::to_string(mpiRank));
+      mkdir(outputDir.c_str(), 0776);
+
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
         // Gather active sending points for this rank into local std::vector
         std::vector<POINT> rbfPoints;
@@ -254,15 +258,12 @@ timing run(parameters& params) {
         }
 
         if ( rbfPoints.size() != 0 ) {
-          // Define unique output directory for RBF matrix files
-          std::string outputDir(params.rbf_dirName+muiInterfaces[interface].interfaceName);
-
           // Create RBF sampler instance
           if( params.enableMPI ) {
             mui::sampler_rbf<mui::tf_config>* s1_rbf_local = new mui::sampler_rbf<mui::tf_config>(params.rbf_Radius, rbfPoints, params.rbf_BasisFunc,
                                                                    params.rbf_Conservative, params.rbf_Smooth, params.rbf_Write, outputDir,
                                                                    params.rbf_Cutoff, params.rbf_CgSolveTol, params.rbf_CgSolveMaxIt,
-                                                                   params.rbf_PoUSize, params.rbf_CgPreCon);
+                                                                   params.rbf_PoUSize, params.rbf_CgPreCon, world);
 
             s1_rbf.push_back(s1_rbf_local);
           }
@@ -270,7 +271,7 @@ timing run(parameters& params) {
             mui::sampler_rbf<mui::tf_config>* s1_rbf_local = new mui::sampler_rbf<mui::tf_config>(params.rbf_Radius, rbfPoints, params.rbf_BasisFunc,
                                                                    params.rbf_Conservative, params.rbf_Smooth, params.rbf_Write, outputDir,
                                                                    params.rbf_Cutoff, params.rbf_CgSolveTol, params.rbf_CgSolveMaxIt,
-                                                                   params.rbf_PoUSize, params.rbf_CgPreCon, world);
+                                                                   params.rbf_PoUSize, params.rbf_CgPreCon);
 
             s1_rbf.push_back(s1_rbf_local);
           }

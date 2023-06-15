@@ -12,7 +12,7 @@ ENABLE_LOCAL_MPI YES
 # Physical domain size {min} {max}
 DOMAIN {0,0,0} {500,500,500}
 
-# Number of cells in each direction
+# Number of cells in each direction (final grid cell points are at the cell centre)
 NUM_GRID_CELLS {100,100,100}
 
 # Enable console output
