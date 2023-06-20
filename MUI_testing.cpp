@@ -674,6 +674,7 @@ bool createGridData(parameters& params) {
       for(size_t i=0; i < params.itot; i++) {
         for(size_t j=0; j < params.jtot; j++) {
           for(size_t k=0; k < params.ktot; k++) {
+        	final_index = i + params.itot * j + params.itot * params.jtot * k;
             out << sendRcvPoints[final_index].point[0] << ",";
             out << sendRcvPoints[final_index].point[1] << ",";
             out << sendRcvPoints[final_index].point[2] << "\n";

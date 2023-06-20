@@ -4,7 +4,7 @@
 
 ./clean.sh
 
-bin=../../build/MUI_Testing
+bin=../../build_Int/MUI_Testing
 
 MPI_RANKS_1=4
 MPI_RANKS_2=4
@@ -12,4 +12,4 @@ MPI_RANKS_2=4
 instanceOne="-n ${MPI_RANKS_1} ${bin} config1"
 instanceTwo="-n ${MPI_RANKS_2} ${bin} config2"
 
-mpirun ${instanceOne} : ${instanceTwo}
+mpiexec ${instanceOne} : ${instanceTwo}
