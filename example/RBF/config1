@@ -84,7 +84,7 @@ RBF_GAUSS_CUT_OFF 1e-9
 # Conjugate Gradient solver convergence tolerance (default=1e-6)
 RBF_CG_SOLVE_TOL 1e-6
 # Conjugate Gradient solver maximum iterations (0 means the solver decides)
-RBF_CG_MAX_ITER 0
+RBF_CG_MAX_ITER 10
 # RBF partition of unity size (0=partitioned approach disabled; default=50)
 RBF_POU_SIZE 50
 # Preconditioner for Conjugate Gradient solver (No preconditioner=0; diagonal=1; default=1)

@@ -244,9 +244,10 @@ timing run(parameters& params) {
   // If RBF interpolation enabled then gather local (sending) point set used to generate basis matrix
   if( params.interpMode == 2 && interpolated ) {
     for( size_t interface=0; interface < muiInterfaces.size(); interface++ ) {
-      // Define unique output directory for RBF matrix files and create directory
-      std::string outputDir(params.rbf_dirName+"_"+muiInterfaces[interface].interfaceName+"_"+std::to_string(mpiRank));
-      mkdir(outputDir.c_str(), 0776);
+      // Define unique output directory for RBF matrix files if this has been enabled (otherwise a blank string turns this off in the filter)
+      std::string outputDir;
+      if( params.rbf_Write )
+    	  outputDir.assign(params.rbf_dirName+"_"+muiInterfaces[interface].interfaceName+"_"+std::to_string(mpiRank));
 
       if( muiInterfaces[interface].sendRecv == 0 || muiInterfaces[interface].sendRecv == 2 ) { //Only push and commit if this interface is for sending or for send & receive
         // Gather active sending points for this rank into local std::vector
@@ -261,7 +262,7 @@ timing run(parameters& params) {
           // Create RBF sampler instance
           if( params.enableMPI ) {
             mui::sampler_rbf<mui::tf_config>* s1_rbf_local = new mui::sampler_rbf<mui::tf_config>(params.rbf_Radius, rbfPoints, params.rbf_BasisFunc,
-                                                                   params.rbf_Conservative, params.rbf_Smooth, params.rbf_Write, outputDir,
+                                                                   params.rbf_Conservative, params.rbf_Smooth, true, outputDir,
                                                                    params.rbf_Cutoff, params.rbf_CgSolveTol, params.rbf_CgSolveMaxIt,
                                                                    params.rbf_PoUSize, params.rbf_CgPreCon, world);
 
@@ -269,7 +270,7 @@ timing run(parameters& params) {
           }
           else { // MPI disabled so no need to provide RBF filter with MPI communicator
             mui::sampler_rbf<mui::tf_config>* s1_rbf_local = new mui::sampler_rbf<mui::tf_config>(params.rbf_Radius, rbfPoints, params.rbf_BasisFunc,
-                                                                   params.rbf_Conservative, params.rbf_Smooth, params.rbf_Write, outputDir,
+                                                                   params.rbf_Conservative, params.rbf_Smooth, true, outputDir,
                                                                    params.rbf_Cutoff, params.rbf_CgSolveTol, params.rbf_CgSolveMaxIt,
                                                                    params.rbf_PoUSize, params.rbf_CgPreCon);
 
