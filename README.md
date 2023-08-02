@@ -8,13 +8,15 @@ an MUI interface. Multiple interfaces can be specified per instance and the regi
 
 ## Licensing
 
-The source code is dual-licensed under either the GNU General Purpose License v3 or Apache License v2.0.
+The source code is dual-licensed under either the GNU General Purpose License v3 or Apache License v2.0, copies of both should have been provided with this source code.
 
 ## Installation
 
 This code is provided with CMake build files and has no external dependencies other than MUI. It relies on having access to a working CMake-derived MUI installation, therefore before compiling this application, 
 please first review the main <a href="https://github.com/MxUI/MUI" target="_blank">MUI</a> library repository and consider installing using CMake. If you prefer to use the MUI library
 directly then you will need to first modify the provided CMakeLists.txt file to include a direct path to the library's location. 
+
+This software assumes the use of MUI 2.0 or higher.
 
 Assuming the use of CMake to build then the following parameters should be considered:
 
